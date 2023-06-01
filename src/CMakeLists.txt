@@ -28,6 +28,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/GitSHA1.cpp.in" "${CMAKE_CURRENT_BIN
 
 add_executable (pepin-bin
     pepin.cpp
+    pepin-int.cpp
     pepin-main.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp
 )

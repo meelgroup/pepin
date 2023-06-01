@@ -27,6 +27,7 @@
 #include <immintrin.h>
 #include <vector>
 #include <cstdint>
+#include <cassert>
 #include <algorithm>
 #include <limits>
 #include <random>
@@ -36,8 +37,8 @@
 #include <unistd.h>
 #include <malloc.h>
 #include <sys/mman.h>
+#include "pepin.h"
 
-#include "solvertypesmini.h"
 #include "MersenneTwister.h"
 
 using std::vector;

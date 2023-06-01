@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 #include <string.h>
 #include "streambuffer.h"
-#include "solvertypesmini.h"
 #include <cstdlib>
 #include <cmath>
 #include <vector>
@@ -36,10 +35,12 @@ THE SOFTWARE.
 #include <fstream>
 #include <complex>
 #include <cassert>
+#include "pepin.h"
 
 using std::vector;
 using std::cout;
 using std::endl;
+using PepinNS::Lit;
 
 template <class C, class S>
 class DimacsParser

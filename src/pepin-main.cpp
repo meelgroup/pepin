@@ -37,8 +37,8 @@ namespace po = boost::program_options;
 #include <signal.h>
 
 #include "time_mem.h"
-#include "dimacsparser-dnf.h"
 #include "pepin.h"
+#include "dimacsparser-dnf.h"
 
 // To allow breaking on division by zero etc
 #if defined(__GNUC__) && defined(__linux__)
@@ -59,7 +59,7 @@ int verb = 0;
 int seed = 1;
 double epsilon = 0.5;
 double delta = 0.36;
-Pepin* dnfs;
+PepinNS::Pepin* dnfs;
 int force_eager = false;
 int fast = 1;
 
@@ -105,10 +105,8 @@ void add_supported_options(int argc, char** argv)
         }
 
         if (vm.count("version")) {
-            dnfs = new Pepin(epsilon, delta, seed);
-            cout << "c [dnfs] SHA revision: " << dnfs->get_version_info() << endl;
-            cout << "c [dnfs] Compilation environment: " << dnfs->get_compilation_env() << endl;
-            delete dnfs;
+            cout << "c [dnfs] SHA revision: " << PepinNS::Pepin::get_version_info() << endl;
+            cout << "c [dnfs] Compilation environment: " << PepinNS::Pepin::get_compilation_env() << endl;
             std::exit(0);
         }
 
@@ -193,10 +191,10 @@ void readInAFile(const string& filename)
 {
     #ifndef USE_ZLIB
     FILE * in = fopen(filename.c_str(), "rb");
-    DimacsParser<StreamBuffer<FILE*, FN>, Pepin> parser(dnfs, verb);
+    DimacsParser<StreamBuffer<FILE*, FN>, PepinNS::Pepin> parser(dnfs, verb);
     #else
     gzFile in = gzopen(filename.c_str(), "rb");
-    DimacsParser<StreamBuffer<gzFile, GZ>, Pepin> parser(dnfs, verb);
+    DimacsParser<StreamBuffer<gzFile, GZ>, PepinNS::Pepin> parser(dnfs, verb);
     #endif
 
     if (in == NULL) {
@@ -236,7 +234,7 @@ int main(int argc, char** argv)
         }
     }
     add_supported_options(argc, argv);
-    dnfs = new Pepin(epsilon, delta, seed, verb);
+    dnfs = new PepinNS::Pepin(epsilon, delta, seed, verb);
     dnfs->set_force_eager(force_eager);
     dnfs->set_fast(fast);
 

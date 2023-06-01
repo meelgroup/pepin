@@ -646,7 +646,8 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         exit(-1);
     }
     uint64_t num_samples = mpz_get_ui(ni);
-    add_uniq_samples(cl_tmp, dnf_cl_num, num_samples);
+    if (num_samples > 0) add_uniq_samples(cl_tmp, dnf_cl_num, num_samples);
+    else assert(false && "maybe bug is here? do eager.");
 
     if (verbosity) {
         cout << "-- after add_clause --" << endl;
