@@ -392,10 +392,12 @@ void PepinInt::approx_binomial(
                     mpq_mul_2exp(center_for_a_2, center_for_a_2, 32);
                 } else {
                     mpz_set_ui(samples_needed_out, 0);
+                    mpq_clear(center_for_a_2);
                     return;
                 }
             }
             const double center_low_prec = mpq_get_d(center_for_a_2);
+            mpq_clear(center_for_a_2);
             assert(center_low_prec < 1.0);
             assert(center_low_prec > 0.0);
             std::uniform_real_distribution<double> distr(0.0, 1.0);
@@ -622,13 +624,18 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         last_10k_time = cpuTime();
     }
 
+
     num_cl_added++;
-    if (verbosity >= 3) cout << "Adding clause: " << cl << endl;
+    print_verb("Adding clause: " << cl);
     print_verb("CL num: " << num_cl_added);
     assert(bucket.nVars() == nVars());
     for(const Lit& l: cl) assert(l.var() < nvars);
 
+    // No duplicates
     cl_tmp = cl;
+    sort(cl_tmp.begin(), cl_tmp.end());
+    cl_tmp.erase(unique( cl_tmp.begin(), cl_tmp.end() ), cl_tmp.end());
+
     std::shuffle(cl_tmp.begin(), cl_tmp.end(), mtrand);
     print_verb("Filtering bucket from solutions. Orig sz:" << bucket.get_size());
     bucket.remove_sol(cl_tmp, weights, mtrand);
@@ -647,7 +654,6 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     }
     uint64_t num_samples = mpz_get_ui(ni);
     if (num_samples > 0) add_uniq_samples(cl_tmp, dnf_cl_num, num_samples);
-    else assert(false && "maybe bug is here? do eager.");
 
     if (verbosity) {
         cout << "-- after add_clause --" << endl;
