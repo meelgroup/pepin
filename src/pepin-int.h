@@ -254,8 +254,8 @@ struct PepinInt {
     void set_force_eager(const int _force_eager) {
         force_eager = _force_eager;
     }
-    void set_fast(const int _fast) {
-        fast = _fast;
+    void set_fast_center_calc(const int _fast_center_calc) {
+        fast_center_calc = _fast_center_calc;
     }
 
     uint32_t new_vars(const uint32_t n) {
@@ -319,7 +319,7 @@ struct PepinInt {
     uint32_t verbosity;
     bool force_eager = false;
     double last_10k_time;
-    int fast = true;
+    int fast_center_calc = true;
     uint64_t added_samples_during_processing = 0;
     std::mt19937_64 mtrand;
 

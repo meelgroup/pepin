@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <vector>
 #include <ostream>
+#include <gmp.h>
 
 namespace PepinNS {
 struct PepinPrivate;
@@ -110,14 +111,13 @@ inline std::ostream& operator<<(std::ostream& co, const std::vector<Lit>& lits)
     return co;
 }
 
-
 struct Pepin {
     Pepin(const double epsilon, const double delta, const uint32_t seed,
               const uint32_t verbosity = 1);
     ~Pepin();
 
-    void set_force_eager(const int _force_eager);
-    void set_fast(const int _fast);
+    void set_force_eager(const int force_eager);
+    void set_fast_center_calc(const int fast_center_calc);
     uint32_t new_vars(const uint32_t n);
     void add_clause(const std::vector<Lit>& cl, const uint64_t dnf_cl_num);
     uint32_t nVars() const;
@@ -129,6 +129,10 @@ struct Pepin {
     void set_n_cls(uint32_t n_cls);
     static const char* get_version_info();
     static const char* get_compilation_env();
+    mpf_t* get_low_prec_appx_num_points() const;
+    mpq_t* get_low_prec_appx_weighted_sol() const;
+    mpf_t* get_appx_weighted_sol() const;
+
     PepinPrivate* pepin = NULL;
 };
 

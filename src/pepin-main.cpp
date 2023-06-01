@@ -61,7 +61,7 @@ double epsilon = 0.5;
 double delta = 0.36;
 PepinNS::Pepin* dnfs;
 int force_eager = false;
-int fast = 1;
+int fast_center_calc = 1;
 
 // static void signal_handler(int) {
 //     cout << endl << "c [dnfs] INTERRUPTING ***" << endl << std::flush;
@@ -79,7 +79,7 @@ void add_dnfs_options()
     ("epsilon,e", po::value(&epsilon)->default_value(epsilon), "epsilon")
     ("eager", po::value(&force_eager)->default_value(force_eager), "Force eager")
     ("delta,d", po::value(&delta)->default_value(delta), "delta")
-    ("fast", po::value(&fast)->default_value(fast), "fast")
+    ("fastcenter", po::value(&fast_center_calc)->default_value(fast_center_calc), "fast center calculation")
     ;
 
     help_options.add(dnfs_options);
@@ -236,7 +236,7 @@ int main(int argc, char** argv)
     add_supported_options(argc, argv);
     dnfs = new PepinNS::Pepin(epsilon, delta, seed, verb);
     dnfs->set_force_eager(force_eager);
-    dnfs->set_fast(fast);
+    dnfs->set_fast_center_calc(fast_center_calc);
 
     cout << "c Pepin Version: " << dnfs->get_version_info() << endl;
     cout << "c compilation environment: " << dnfs->get_compilation_env()

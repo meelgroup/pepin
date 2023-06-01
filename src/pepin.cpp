@@ -45,7 +45,9 @@ void PepinNS::Pepin::set_force_eager(const int _force_eager) {
     pepin->p->set_force_eager(_force_eager);
 }
 
-void PepinNS::Pepin::set_fast(const int _fast) { pepin->p->set_fast(_fast); }
+void PepinNS::Pepin::set_fast_center_calc(const int _fast_center_calc) {
+    pepin->p->set_fast_center_calc(_fast_center_calc);
+}
 uint32_t PepinNS::Pepin::nVars() const { return pepin->p->nVars(); }
 uint32_t PepinNS::Pepin::new_vars(const uint32_t n) { return pepin->p->new_vars(n); }
 

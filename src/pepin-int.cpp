@@ -47,7 +47,7 @@ void Bucket::remove_half(std::mt19937_64& mtrand)
 {
     const auto orig_size = get_size();
     if (get_size() > 0) {
-        cout << "Removing half ... bucket size now: " << get_size();
+        print_verb("Removing half ... bucket size now: " << get_size());
     }
     for(size_t i = 0, at = 0; i < elems.size(); i+=nvars, at++) {
         if (elems_dat[at].empty) continue;
@@ -56,7 +56,7 @@ void Bucket::remove_half(std::mt19937_64& mtrand)
         remove(at);
     }
     if (orig_size > 0) {
-        cout << " after: " << get_size() << " ratio: " << std::setprecision(2) << ((double)get_size()/(double)orig_size) << endl;
+        print_verb(" after: " << get_size() << " ratio: " << std::setprecision(2) << ((double)get_size()/(double)orig_size));
     }
 }
 
@@ -107,7 +107,7 @@ void Bucket::remove_sol(const vector<Lit>& cl,
         else elems_dat[at].updated+=updated;
     }
     if (size_before > get_size() && verbosity >=2) {
-        cout << "Filtered. Removed: " << size_before - get_size() << endl;
+        print_verb("Filtered. Removed: " << size_before - get_size());
     }
 }
 
@@ -129,12 +129,11 @@ void PepinInt::set_n_cls(uint32_t n_cls)
 {
     thresh = (int)(4.0*(std::log2(n_cls+1)/
         (epsilon*epsilon))*std::log2(1.0/delta));
-    cout << "Threshold computed: " << thresh
+    print_verb("Threshold computed: " << thresh
     << " -- cl num: " << n_cls
     << " epsilon: " << std::setprecision(5) << epsilon
-    << " delta: " << std::setprecision(5) <<delta
-    << endl;
-    //Just setting thresh=23 leads to segfault bug
+    << " delta: " << std::setprecision(5) <<delta);
+
     n_cls_declared = n_cls;
 }
 
@@ -257,7 +256,7 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
     //calculate center_magic = n*sampl_prob
     if (sampl_prob_expbit_before_magic == sampl_prob_expbit &&
         mpz_cmp(last_n_magic, n) == 0 &&
-        fast)
+        fast_center_calc)
     {
         //nothing to do, reuse old center_magic and sampl_prob values
     } else {
@@ -283,10 +282,9 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
         bucket.remove_half(mtrand);
     }
     if (quick_halfing_ran) {
-        cout << "Sampl. prob is now: 2**-" << sampl_prob_expbit
+        print_verb("Sampl. prob is now: 2**-" << sampl_prob_expbit
         << " nvars-expprob = " << nvars-sampl_prob_expbit
-        << " bucket size: " << bucket.get_size()
-        << endl;
+        << " bucket size: " << bucket.get_size());
     }
     print_verb("Approx is: " << center_magic);
     mpz_set_ui(ni_plus_bucketsz, 0);
@@ -300,16 +298,15 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
         print_verb("bucket size: " << bucket.get_size());
         print_verb("ni_plus_bucketsz:" << ni_plus_bucketsz);
         if (mpz_cmp_ui(ni_plus_bucketsz, thresh) < 0) {
-            if (verbosity >= 2) cout << "Less than threshold " << thresh << " -> breaking" << endl;
+            print_verb2("Less than threshold " << thresh << " -> breaking");
             break;
         }
 
         approx_binomial(samples_needed, constant_half, samples_needed);
         sampl_prob_expbit++;
-        cout << "Sampl. prob is now: 2**-" << sampl_prob_expbit
+        print_verb("Sampl. prob is now: 2**-" << sampl_prob_expbit
         << " nvars-expprob = " << nvars-sampl_prob_expbit
-        << " bucket size: " << bucket.get_size()
-        << endl;
+        << " bucket size: " << bucket.get_size());
         bucket.remove_half(mtrand);
     }
 }
@@ -346,7 +343,7 @@ void PepinInt::approx_binomial(
         //This is PURELY for speed (no change to values)
         if (sampl_prob_expbit == sampl_prob_expbit_before_approx &&
             mpz_cmp(last_n_appx, n_local) == 0 &&
-            fast == 1
+            fast_center_calc
         ) {
             //nothing to do, keep using old values: center_for_a, and var
         } else {
@@ -621,7 +618,6 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         last_10k_time = cpuTime();
     }
 
-
     num_cl_added++;
     print_verb("Adding clause: " << cl);
     print_verb("CL num: " << num_cl_added);
@@ -637,9 +633,6 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     bucket.remove_sol(cl_tmp, weights, mtrand);
     print_verb("Bucket size now: " << bucket.get_size());
     if (verbosity >= 3) bucket.print_contents();
-
-    // Why do we need to shuffle?
-    std::shuffle(cl_tmp.begin(), cl_tmp.end(), mtrand);
 
     // Computing number of samples needed
     magic(cl_tmp, ni);
@@ -673,55 +666,55 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     }
 
     if (num_cl_added == n_cls_declared) {
-        cout << "*** Finished.***" << endl;
-        cout << "Num CL processed: " << num_cl_added << endl;
-        cout << "Sample function called: " << samples_called
+        print_verb("*** Finished.***");
+        print_verb("Num CL processed: " << num_cl_added);
+        print_verb("Sample function called: " << samples_called
         << " of which lazy: " << std::setprecision(6)
         << ((double)lazy_samples_called/(double)samples_called)*100.0
-        << " %" << endl;
+        << " %");
 
         //Statistics about the samples
-        bucket.print_elems_stats(dnf_cl_num);
+        if (verbosity >= 1) bucket.print_elems_stats(dnf_cl_num);
 
         //Exp description
         double buck_size_log2 = log2(bucket.get_size());
         buck_size_log2 += sampl_prob_expbit;
-        cout << "Bucket expbit: " << sampl_prob_expbit << " bucket log2: " << log2(bucket.get_size()) << endl;
-        cout << "bucket_size/sampl_prob : 2**" << buck_size_log2 << endl;
+        print_verb("Bucket expbit: " << sampl_prob_expbit << " bucket log2: " << log2(bucket.get_size()));
+        print_verb("bucket_size/sampl_prob : 2**" << buck_size_log2);
 
         // Calculate the number of points in the N-dimensional space
         // NOTE: Bignum cannot do 2**(float), so we do:
         //    z*2**floor(float)
         //    where we calculate z = 2**(float-floor(float)) in C++, i.e. low precision
-        mpf_t approx_num_points;
-        mpf_init2(approx_num_points, 1000);
-        mpf_set_d(approx_num_points, std::exp2(buck_size_log2-std::floor(buck_size_log2)));
-        mpf_mul_2exp(approx_num_points, approx_num_points, std::floor(buck_size_log2));
-        cout << "Approx num points: " << std::fixed << std::setprecision(0) << approx_num_points << std::setprecision(10) << endl;
-        mpf_clear(approx_num_points);
+        mpf_t low_prec_num_points;
+        mpf_init2(low_prec_num_points, 1000);
+        mpf_set_d(low_prec_num_points, std::exp2(buck_size_log2-std::floor(buck_size_log2)));
+        mpf_mul_2exp(low_prec_num_points, low_prec_num_points, std::floor(buck_size_log2));
 
         //bucket_size/sampl_prob
-        mpq_t tmp;
-        mpq_init(tmp);
-        mpq_set_ui(tmp, bucket.get_size(), 1);
+        mpq_t weigh_num_sols;
+        mpq_init(weigh_num_sols);
+        mpq_set_ui(weigh_num_sols, bucket.get_size(), 1);
         mpq_div_2exp(sampl_prob, constant_one, sampl_prob_expbit);
-        mpq_div(tmp, tmp, sampl_prob);
+        mpq_div(weigh_num_sols, weigh_num_sols, sampl_prob);
 
         // (bucket_size/sampl_prob)/prod_precision
         mpq_t tmp2;
         mpq_init(tmp2);
         mpq_set_z(tmp2, prod_precision);
-        mpq_div(tmp, tmp, tmp2);
+        mpq_div(weigh_num_sols, weigh_num_sols, tmp2);
         mpq_clear(tmp2);
 
-        mpf_t high_prec;
-        mpf_init2(high_prec, 100);
-        mpf_set_q(high_prec, tmp);
+        mpf_t low_prec_weigh_num_sols;
+        mpf_init2(low_prec_weigh_num_sols, 100);
+        mpf_set_q(low_prec_weigh_num_sols, weigh_num_sols);
 
-        cout << "Weight no. solutions: " << tmp << endl;
-        cout << "Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << high_prec << endl;
-        cout << "-- CL adding finished --" << endl;
-        mpq_clear(tmp);
-        mpf_clear(high_prec);
+        print_verb("Low-repcision approx num points: " << std::fixed << std::setprecision(0) << low_prec_num_points << std::setprecision(10));
+        print_verb("Weight no. solutions: " << weigh_num_sols);
+        print_verb("Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << low_prec_weigh_num_sols);
+
+        mpq_clear(weigh_num_sols);
+        mpf_clear(low_prec_weigh_num_sols);
+        mpf_clear(low_prec_num_points);
     }
 }
