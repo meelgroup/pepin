@@ -32,6 +32,8 @@ Notice that the cube `1 2 3` has 2**17 points, so 131072 points, and `1 -5` has 
 The header file, `pepin.h` is made to be used as a library. Use as:
 ```
 #include <pepin.h>
+#include <iostream>
+#include <iomanip>
 using namespace PepinNS;
 
 int main() {
@@ -39,12 +41,18 @@ int main() {
   pepin.new_vars(20);
   pepin.set_n_cls(2);
 
-  vector<Lit> cl = {itol(1), itol(2), itol(3)};
-  pepin.add_clause(cl);
-    
+  typedef vector<Lit> CL;
+  pepin.add_clause(CL{itol(1), itol(2), itol(3)});
+  pepin.add_clause(CL{itol(1), itol(-5)});
+  auto weigh_num_sols = dnfs->get_low_prec_appx_weighted_sol();
+  std::cout << "Solution: " << std::scientific << std::setprecision(10)
+    << *weigh_num_sols << std::endl;
+
+  return 0;
 }
 ```
 
+The library is clean -- it cleans up after itself, you can have more than one in memory, you can even run them in parallel, if you wish.
 
 ## License
 MIT license all the way through
