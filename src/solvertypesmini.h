@@ -1,5 +1,7 @@
 /******************************************
-Copyright (C) 2009-2020 Authors of CryptoMiniSat, see AUTHORS file
+Pepin
+
+Copyright (C) 2021 Mate Soos, Kuldeep S. Meel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,8 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ***********************************************/
 
-#ifndef __SOLVERTYPESMINI_H__
-#define __SOLVERTYPESMINI_H__
+#pragma once
 
 #include <cstdint>
 #include <iostream>
@@ -30,10 +31,9 @@ THE SOFTWARE.
 #include <array>
 #include <algorithm>
 
-constexpr uint32_t var_Undef(0xffffffffU >> 4);
+namespace PepinNS {
 
-class TooManyVarsError {};
-class TooLongClauseError {};
+constexpr uint32_t var_Undef(0xffffffffU >> 4);
 
 class Lit
 {
@@ -45,9 +45,6 @@ public:
         x(var + var + is_inverted)
     {}
 
-    constexpr const uint32_t& toInt() const { // Guarantees small, positive integers suitable for array indexing.
-        return x;
-    }
     constexpr Lit  operator~() const {
         return Lit(x ^ 1);
     }
@@ -92,7 +89,6 @@ public:
 };
 
 static const Lit lit_Undef(var_Undef, false);  // Useful special constants.
-static const Lit lit_Error(var_Undef, true );  //
 
 inline std::ostream& operator<<(std::ostream& os, const Lit lit)
 {
@@ -116,74 +112,4 @@ inline std::ostream& operator<<(std::ostream& co, const std::vector<Lit>& lits)
     return co;
 }
 
-class lbool {
-    uint8_t value;
-
-public:
-    constexpr explicit lbool(uint8_t v) : value(v) { }
-    constexpr lbool()       : value(0) { }
-    constexpr explicit lbool(bool x) : value(!x) { }
-
-    constexpr bool  operator == (lbool b) const {
-        return ((b.value & 2) & (value & 2)) | (!(b.value & 2) & (value == b.value));
-    }
-    constexpr bool  operator != (lbool b) const {
-        return !(*this == b);
-    }
-    constexpr lbool operator ^  (bool  b) const {
-        return lbool((uint8_t)(value ^ (uint8_t)b));
-    }
-
-    lbool operator && (lbool b) const {
-        uint8_t sel = (value << 1) | (b.value << 3);
-        uint8_t v   = (0xF7F755F4 >> sel) & 3;
-        return lbool(v);
-    }
-
-    lbool operator || (lbool b) const {
-        uint8_t sel = (value << 1) | (b.value << 3);
-        uint8_t v   = (0xFCFCF400 >> sel) & 3;
-        return lbool(v);
-    }
-
-    constexpr uint8_t getValue() const { return value; }
-
-    friend lbool toLbool(uint32_t   v);
-    constexpr friend uint32_t   toInt  (lbool l);
-};
-
-constexpr lbool l_True = lbool((uint8_t)0);
-constexpr lbool l_False = lbool((uint8_t)1);
-constexpr lbool l_Undef = lbool((uint8_t)2);
-
-inline lbool toLbool(uint32_t v)
-{
-    lbool l;
-    l.value = v;
-    return l;
 }
-
-
-constexpr inline uint32_t toInt  (lbool l)
-{
-    return l.value;
-}
-
-inline lbool boolToLBool(const bool b)
-{
-    if (b) {
-        return l_True;
-    } else {
-        return l_False;
-    }
-}
-
-inline std::ostream& operator<<(std::ostream& cout, const lbool val)
-{
-    if (val == l_True) cout << "l_True";
-    if (val == l_False) cout << "l_False";
-    if (val == l_Undef) cout << "l_Undef";
-    return cout;
-}
-
-#endif //__SOLVERTYPESMINI_H__
