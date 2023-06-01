@@ -16,17 +16,18 @@ And outputs a probabilistically approximate count.
 You can build&run it with:
 
 ```
-sudo apt-get install libgmp-dev zlib1g-dev libboost-program-options-dev cmake build-essential
+sudo apt-get install libgmp-dev zlib1g-dev libboost-program-options-dev cmake build-essential git
+git clone https://github.com/meelgroup/pepin
 mkdir build
 cd build
 cmake ..
 make
 ./pepin --epsilon 0.15 --delta 0.1 myfile.dnf
 [...]
-Approx num points: 339456
+c [dnfs] Low-precision approx num points: 348672
 ```
 
-Notice that the cube `1 2 3` has 2**17=131072 points, and `1 -5` has 2**18=262144, so a total of 393216. But they overlap, `1 2 3 -5` is counted twice. So the exact number is: 327680. Hence, we over-approximated a bit here. The error is 1.0-339456/327680=.0359, so about 3.6%. This is well below the advertised 15% error allowed (i.e. epsilon 0.15).
+Notice that the cube `1 2 3` has 2**17=131072 points, and `1 -5` has 2**18=262144, so a total of 393216. But they overlap, `1 2 3 -5` is counted twice. So the exact number is: 327680. Hence, we over-approximated a bit here. The error is 1.0-348672/327680=-0.064, so about 6.4%. This is well below the advertised 15% error allowed (i.e. epsilon 0.15).
 
 
 ## Current Limitations
