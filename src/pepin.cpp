@@ -204,11 +204,11 @@ Pepin::~Pepin()
 }
 
 const char* Pepin::get_version_info() const {
-    return DNFS::get_version_sha1();
+    return PepinNS::get_version_sha1();
 }
 
 const char* Pepin::get_compilation_env() const {
-    return DNFS::get_compilation_env();
+    return PepinNS::get_compilation_env();
 }
 
 void Pepin::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
@@ -550,6 +550,10 @@ void Pepin::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, c
         print_verb("Generated " << todo << " extra non-unique samples");
         assert(sol.size() == ws.size());
         assert(sol.size() % nVars() == 0);
+        if (samples.size()*nVars() != sol.size()) {
+            cout << "ERROR. This version of the algorithm can only deal with unique samples, and the precision requested would require more samples than there is volume. So we can't do that. Please lower your epsilon." << endl;
+            exit(-1);
+        }
         assert(samples.size()*nVars() == sol.size());
 
         //remove duplicates
