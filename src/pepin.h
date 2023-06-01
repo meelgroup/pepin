@@ -1,5 +1,5 @@
 /*
- DNFStream
+ Pepin
 
  Copyright (c) 2021, Mate Soos and Kuldeep S. Meel. All rights reserved.
 
@@ -22,7 +22,7 @@
  THE SOFTWARE.
  */
 
-#ifndef _DNF_STREAM_H__
+#pragma once
 
 #include <immintrin.h>
 #include <vector>
@@ -44,8 +44,7 @@ using std::vector;
 using std::cout;
 using std::endl;
 
-
-namespace DNFS {
+namespace PepinNS {
 
 typedef uint16_t WeightPrec;
 
@@ -245,10 +244,10 @@ private:
     const uint32_t verbosity;
 };
 
-struct DNFStream {
-    DNFStream(const double _epsilon, const double _delta, const uint32_t seed,
+struct Pepin {
+    Pepin(const double _epsilon, const double _delta, const uint32_t seed,
               const uint32_t verbosity = 1);
-    ~DNFStream();
+    ~Pepin();
 
     void set_force_eager(const int _force_eager) {
         force_eager = _force_eager;
@@ -307,7 +306,7 @@ struct DNFStream {
     uint32_t n_cls_declared = 0;
     double epsilon;
     double delta;
-    uint64_t thresh = 0; //intentially wrong
+    uint64_t thresh = 0; //intentionally wrong
     mpq_t sampl_prob;
     uint32_t sampl_prob_expbit = 0;
     uint32_t sampl_prob_expbit_before_approx = std::numeric_limits<uint32_t>::max();
@@ -347,5 +346,3 @@ struct DNFStream {
 };
 
 }
-
-#endif //_DNF_STREAM_H__

@@ -1,5 +1,5 @@
 /*
- DNFStream
+ Pepin
 
  Copyright (c) 2021 All rights reserved. Authors:
     Mate Soos
@@ -27,10 +27,6 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#if defined(__GNUC__) && defined(__linux__)
-#include <fenv.h>
-#endif
-
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -44,13 +40,18 @@ namespace po = boost::program_options;
 #include "dimacsparser-dnf.h"
 #include "pepin.h"
 
+// To allow breaking on division by zero etc
+#if defined(__GNUC__) && defined(__linux__)
+#include <fenv.h>
+#endif
+
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
-using namespace DNFS;
+using namespace PepinNS;
 
-po::options_description dnfs_options = po::options_description("DNFS options");
+po::options_description dnfs_options = po::options_description("Pepin options");
 po::options_description help_options;
 po::variables_map vm;
 po::positional_options_description p;
@@ -59,7 +60,7 @@ int verb = 0;
 int seed = 1;
 double epsilon = 0.5;
 double delta = 0.36;
-DNFStream* dnfs;
+Pepin* dnfs;
 int force_eager = false;
 int fast = 1;
 
@@ -105,7 +106,7 @@ void add_supported_options(int argc, char** argv)
         }
 
         if (vm.count("version")) {
-            dnfs = new DNFStream(epsilon, delta, seed);
+            dnfs = new Pepin(epsilon, delta, seed);
             cout << "c [dnfs] SHA revision: " << dnfs->get_version_info() << endl;
             cout << "c [dnfs] Compilation environment: " << dnfs->get_compilation_env() << endl;
             delete dnfs;
@@ -193,10 +194,10 @@ void readInAFile(const string& filename)
 {
     #ifndef USE_ZLIB
     FILE * in = fopen(filename.c_str(), "rb");
-    DimacsParser<StreamBuffer<FILE*, FN>, DNFStream> parser(dnfs, verb);
+    DimacsParser<StreamBuffer<FILE*, FN>, Pepin> parser(dnfs, verb);
     #else
     gzFile in = gzopen(filename.c_str(), "rb");
-    DimacsParser<StreamBuffer<gzFile, GZ>, DNFStream> parser(dnfs, verb);
+    DimacsParser<StreamBuffer<gzFile, GZ>, Pepin> parser(dnfs, verb);
     #endif
 
     if (in == NULL) {
@@ -219,6 +220,7 @@ void readInAFile(const string& filename)
 
 int main(int argc, char** argv)
 {
+    // Die on division by zero etc.
     #if defined(__GNUC__) && defined(__linux__)
     feenableexcept(FE_INVALID   |
                    FE_DIVBYZERO |
@@ -235,11 +237,11 @@ int main(int argc, char** argv)
         }
     }
     add_supported_options(argc, argv);
-    dnfs = new DNFStream(epsilon, delta, seed, verb);
+    dnfs = new Pepin(epsilon, delta, seed, verb);
     dnfs->set_force_eager(force_eager);
     dnfs->set_fast(fast);
 
-    cout << "c DNFStream Version: " << dnfs->get_version_info() << endl;
+    cout << "c Pepin Version: " << dnfs->get_version_info() << endl;
     cout << "c compilation environment: " << dnfs->get_compilation_env()
     << endl;
 

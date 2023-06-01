@@ -1,5 +1,5 @@
 /*
- DNFStream
+ Pepin
 
  Copyright (c) 2021, Mate Soos and Kuldeep S. Meel. All rights reserved.
 
@@ -36,7 +36,7 @@
 using std::cout;
 using std::endl;
 
-using namespace DNFS;
+using namespace PepinNS;
 
 #define print_verb(X) \
     if (verbosity) cout << X << endl
@@ -128,7 +128,7 @@ void Bucket::print_contents() const
     cout << "-- Bucket contents end --: " << endl;
 }
 
-void DNFStream::set_n_cls(uint32_t n_cls)
+void Pepin::set_n_cls(uint32_t n_cls)
 {
     thresh = (int)(4.0*(std::log2(n_cls+1)/
         (epsilon*epsilon))*std::log2(1.0/delta));
@@ -141,7 +141,7 @@ void DNFStream::set_n_cls(uint32_t n_cls)
     n_cls_declared = n_cls;
 }
 
-DNFStream::DNFStream(const double _epsilon, const double _delta,
+Pepin::Pepin(const double _epsilon, const double _delta,
                      const uint32_t seed, const uint32_t _verbosity) :
     bucket(all_default_weights, verbosity)
 {
@@ -184,7 +184,7 @@ DNFStream::DNFStream(const double _epsilon, const double _delta,
     mpz_set_ui(constant_one_z, 1);
 }
 
-DNFStream::~DNFStream()
+Pepin::~Pepin()
 {
     mpq_clear(constant_one);
     mpz_clear(ni);
@@ -203,15 +203,15 @@ DNFStream::~DNFStream()
     mpz_clear(constant_one_z);
 }
 
-const char* DNFStream::get_version_info() const {
+const char* Pepin::get_version_info() const {
     return DNFS::get_version_sha1();
 }
 
-const char* DNFStream::get_compilation_env() const {
+const char* Pepin::get_compilation_env() const {
     return DNFS::get_compilation_env();
 }
 
-void DNFStream::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
+void Pepin::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
 {
     bool fast_ok = true;
     for(const Lit& l: cl) {
@@ -251,7 +251,7 @@ void DNFStream::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
     }
 }
 
-void DNFStream::magic(const vector<Lit>& cl, mpz_t samples_needed)
+void Pepin::magic(const vector<Lit>& cl, mpz_t samples_needed)
 {
     get_cl_precision(cl, n);
 
@@ -317,7 +317,7 @@ void DNFStream::magic(const vector<Lit>& cl, mpz_t samples_needed)
     }
 }
 
-void DNFStream::approx_binomial(
+void Pepin::approx_binomial(
     mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out)
 {
     // n_local must be not too large, and sampl_prob must not be too small
@@ -451,7 +451,7 @@ void Bucket::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
     size++;
 }
 
-void DNFStream::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
+void Pepin::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
 {
     samples_called++;
     double bits_of_entropy = 0;
@@ -607,7 +607,7 @@ void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
     << endl;
 }
 
-void DNFStream::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
+void Pepin::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     assert(thresh != 0 && "The number of clauses was not set beforehand!");
     assert(num_cl_added < n_cls_declared);
     if (num_cl_added == 0) {
@@ -704,10 +704,15 @@ void DNFStream::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         mpq_div(tmp, tmp, tmp2);
         mpq_clear(tmp2);
 
+        mpf_t high_prec;
+        mpf_init2(high_prec, 100);
+        mpf_set_q(high_prec, tmp);
+
         cout << "Weight no. solutions: " << tmp << endl;
-        cout << "Low-precision weight no. solutions: " << std::setprecision(10) << mpq_get_d(tmp) << endl;
+        cout << "Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << high_prec << endl;
         cout << "-- CL adding finished --" << endl;
         mpq_clear(tmp);
+        mpf_clear(high_prec);
     }
 }
 
