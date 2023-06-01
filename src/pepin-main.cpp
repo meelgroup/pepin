@@ -42,7 +42,7 @@ namespace po = boost::program_options;
 
 #include "time_mem.h"
 #include "dimacsparser-dnf.h"
-#include "dnfstream.h"
+#include "pepin.h"
 
 using std::cout;
 using std::cerr;

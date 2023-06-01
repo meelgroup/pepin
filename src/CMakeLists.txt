@@ -26,21 +26,21 @@ include_directories(${GMP_INCLUDE_DIRS})
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/GitSHA1.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp" @ONLY)
 
-add_executable (dnfstream-bin
-    dnfstream.cpp
-    dnfstream-main.cpp
+add_executable (pepin-bin
+    pepin.cpp
+    pepin-main.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp
 )
 
-target_link_libraries (dnfstream-bin
+target_link_libraries (pepin-bin
     ${Boost_LIBRARIES}
     ${GMPXX_LIB}
     ${GMP_LIB}
     ${ZLIB_LIBRARY}
 )
 
-set_target_properties(dnfstream-bin PROPERTIES
-    OUTPUT_NAME dnfstream
+set_target_properties(pepin-bin PROPERTIES
+    OUTPUT_NAME pepin
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
     INSTALL_RPATH_USE_LINK_PATH TRUE)
 

@@ -23,7 +23,7 @@
  */
 
 #include "GitSHA1.h"
-#include "dnfstream.h"
+#include "pepin.h"
 #include "time_mem.h"
 
 #include <iostream>

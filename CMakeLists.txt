@@ -49,8 +49,7 @@ if(POLICY CMP0104)
     cmake_policy(SET CMP0104 NEW)
 endif()
 
-
-project (dnfstream)
+project (pepin)
 
 # -----------------------------------------------------------------------------
 # Make RelWithDebInfo the default build type if otherwise not set
@@ -104,26 +103,12 @@ if ((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR (${CMAKE_SYSTEM_NAME} MATCHES "Dar
     endif()
 endif()
 
-
-if ((${CMAKE_SYSTEM_NAME} MATCHES "Windows") AND (STATICCOMPILE))
-    set(Boost_USE_STATIC_LIBS ON)
-endif()
-
-
 include(CheckCXXCompilerFlag)
 include(CheckCCompilerFlag)
 macro(add_cxx_flag_if_supported flagname)
   check_cxx_compiler_flag("${flagname}" HAVE_FLAG_${flagname})
-
   if(HAVE_FLAG_${flagname})
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flagname}" )
-  endif()
-endmacro()
-macro(add_c_flag_if_supported flagname)
-  check_c_compiler_flag("${flagname}" HAVE_FLAG_${flagname})
-
-  if(HAVE_FLAG_${flagname})
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flagname}" )
   endif()
 endmacro()
 
@@ -278,15 +263,6 @@ if (NOT WIN32)
         add_cxx_flag_if_supported("-Wunreachable-code")
         add_cxx_flag_if_supported("-ggdb3")
     endif()
-endif()
-
-if (NOT WIN32)
-    MESSAGE(STATUS "${CMAKE_C_FLAGS}")
-    add_c_flag_if_supported("-fPIC")
-    add_c_flag_if_supported("-std=c99")
-    add_c_flag_if_supported("-Wall")
-    add_c_flag_if_supported("-msse4.1")
-    add_c_flag_if_supported("-mpclmul")
 endif()
 
 # -----------------------------------------------------------------------------
