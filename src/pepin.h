@@ -1,5 +1,5 @@
 /*
- Pepin
+ PepinInt
 
  Copyright (c) 2021, Mate Soos and Kuldeep S. Meel. All rights reserved.
 
@@ -44,7 +44,7 @@ using std::vector;
 using std::cout;
 using std::endl;
 
-namespace PepinNS {
+namespace PepinIntNS {
 
 typedef uint16_t WeightPrec;
 
@@ -244,10 +244,10 @@ private:
     const uint32_t verbosity;
 };
 
-struct Pepin {
-    Pepin(const double _epsilon, const double _delta, const uint32_t seed,
+struct PepinInt {
+    PepinInt(const double _epsilon, const double _delta, const uint32_t seed,
               const uint32_t verbosity = 1);
-    ~Pepin();
+    ~PepinInt();
 
     void set_force_eager(const int _force_eager) {
         force_eager = _force_eager;

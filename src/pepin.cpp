@@ -1,5 +1,5 @@
 /*
- Pepin
+ PepinInt
 
  Copyright (c) 2021, Mate Soos and Kuldeep S. Meel. All rights reserved.
 
@@ -36,7 +36,7 @@
 using std::cout;
 using std::endl;
 
-using namespace PepinNS;
+using namespace PepinIntNS;
 
 #define print_verb(X) \
     if (verbosity) cout << X << endl
@@ -128,7 +128,7 @@ void Bucket::print_contents() const
     cout << "-- Bucket contents end --: " << endl;
 }
 
-void Pepin::set_n_cls(uint32_t n_cls)
+void PepinInt::set_n_cls(uint32_t n_cls)
 {
     thresh = (int)(4.0*(std::log2(n_cls+1)/
         (epsilon*epsilon))*std::log2(1.0/delta));
@@ -141,7 +141,7 @@ void Pepin::set_n_cls(uint32_t n_cls)
     n_cls_declared = n_cls;
 }
 
-Pepin::Pepin(const double _epsilon, const double _delta,
+PepinInt::PepinInt(const double _epsilon, const double _delta,
                      const uint32_t seed, const uint32_t _verbosity) :
     bucket(all_default_weights, verbosity)
 {
@@ -184,7 +184,7 @@ Pepin::Pepin(const double _epsilon, const double _delta,
     mpz_set_ui(constant_one_z, 1);
 }
 
-Pepin::~Pepin()
+PepinInt::~PepinInt()
 {
     mpq_clear(constant_one);
     mpz_clear(ni);
@@ -203,15 +203,15 @@ Pepin::~Pepin()
     mpz_clear(constant_one_z);
 }
 
-const char* Pepin::get_version_info() const {
-    return PepinNS::get_version_sha1();
+const char* PepinInt::get_version_info() const {
+    return PepinIntNS::get_version_sha1();
 }
 
-const char* Pepin::get_compilation_env() const {
-    return PepinNS::get_compilation_env();
+const char* PepinInt::get_compilation_env() const {
+    return PepinIntNS::get_compilation_env();
 }
 
-void Pepin::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
+void PepinInt::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
 {
     bool fast_ok = true;
     for(const Lit& l: cl) {
@@ -251,7 +251,7 @@ void Pepin::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
     }
 }
 
-void Pepin::magic(const vector<Lit>& cl, mpz_t samples_needed)
+void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
 {
     get_cl_precision(cl, n);
 
@@ -317,7 +317,7 @@ void Pepin::magic(const vector<Lit>& cl, mpz_t samples_needed)
     }
 }
 
-void Pepin::approx_binomial(
+void PepinInt::approx_binomial(
     mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out)
 {
     // n_local must be not too large, and sampl_prob must not be too small
@@ -451,7 +451,7 @@ void Bucket::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
     size++;
 }
 
-void Pepin::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
+void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
 {
     samples_called++;
     double bits_of_entropy = 0;
@@ -611,7 +611,7 @@ void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
     << endl;
 }
 
-void Pepin::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
+void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     assert(thresh != 0 && "The number of clauses was not set beforehand!");
     assert(num_cl_added < n_cls_declared);
     if (num_cl_added == 0) {

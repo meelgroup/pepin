@@ -49,7 +49,6 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
-using namespace PepinNS;
 
 po::options_description dnfs_options = po::options_description("Pepin options");
 po::options_description help_options;

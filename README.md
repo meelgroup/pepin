@@ -27,6 +27,19 @@ Approx num points: 339456
 
 Notice that the cube `1 2 3` has 2**17 points, so 131072 points, and `1 -5` has 2**18, so 262144, so a total of 393216. But they overlap, `1 2 3 -5` is counted twice. So the exact number is: 327680. Hence, we over-approximated a bit.
 
+## Library Use
+
+The header file, `pepin.h` is quite clean. Use as:
+
+```
+#include <pepin.h>
+using namespace PepinNS;
+
+int main() {
+    
+}
+```
+
 
 ## License
 MIT license all the way through
