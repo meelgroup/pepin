@@ -51,9 +51,20 @@ void PepinNS::Pepin::set_fast_center_calc(const int _fast_center_calc) {
 uint32_t PepinNS::Pepin::nVars() const { return pepin->p->nVars(); }
 uint32_t PepinNS::Pepin::new_vars(const uint32_t n) { return pepin->p->new_vars(n); }
 
-void PepinNS::Pepin::add_clause(const std::vector<Lit>& cl, const uint64_t dnf_cl_num)
+
+const mpf_t* PepinNS::Pepin::get_low_prec_appx_num_points() const {
+    return pepin->p->get_low_prec_appx_num_points();
+}
+const mpf_t* PepinNS::Pepin::get_low_prec_appx_weighted_sol() const {
+    return pepin->p->get_low_prec_appx_weighted_sol();
+}
+const mpq_t* PepinNS::Pepin::get_appx_weighted_sol() const {
+    return pepin->p->get_appx_weighted_sol();
+}
+
+bool PepinNS::Pepin::add_clause(const std::vector<Lit>& cl, const uint64_t dnf_cl_num)
 {
-    pepin->p->add_clause(cl, dnf_cl_num);
+    return pepin->p->add_clause(cl, dnf_cl_num);
 }
 
 void PepinNS::Pepin::set_var_weight(

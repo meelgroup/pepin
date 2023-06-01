@@ -238,14 +238,16 @@ int main(int argc, char** argv)
     dnfs->set_force_eager(force_eager);
     dnfs->set_fast_center_calc(fast_center_calc);
 
-    cout << "c Pepin Version: " << dnfs->get_version_info() << endl;
-    cout << "c compilation environment: " << dnfs->get_compilation_env()
-    << endl;
+    cout << "c [dnfs] Pepin Version: " << dnfs->get_version_info() << endl;
+    if (verb >= 2) {
+        cout << "c [dnfs] compilation environment: " << dnfs->get_compilation_env()
+        << endl;
 
-    cout
-    << "c executed with command line: "
-    << command_line
-    << endl;
+        cout
+        << "c [dnfs] executed with command line: "
+        << command_line
+        << endl;
+    }
 
     double starTime = cpuTime();
     cout << "c [dnfs] using seed: " << seed << endl;
@@ -257,6 +259,15 @@ int main(int argc, char** argv)
     }
     const string inp = vm["input"].as<string>();
     readInAFile(inp);
+
+    auto low_prec_num_points = dnfs->get_low_prec_appx_num_points();
+    cout << "c [dnfs] Low-repcision approx num points: " << std::fixed << std::setprecision(0)
+            << *low_prec_num_points << std::setprecision(10) << endl;
+    auto weigh_num_sols = dnfs->get_appx_weighted_sol();
+    cout << "c [dnfs] Weight no. solutions: " << *weigh_num_sols << endl;
+
+    auto low_prec_weigh_num_sols = dnfs->get_low_prec_appx_weighted_sol();
+    cout << "c [dnfs] Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << low_prec_weigh_num_sols << endl;
 
     cout << "c [dnfs] finished T: " << std::setprecision(2) << std::fixed << (cpuTime() - starTime)
     << endl;

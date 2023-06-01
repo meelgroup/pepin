@@ -38,9 +38,6 @@ using std::endl;
 
 using namespace PepinIntNS;
 
-#define print_verb(n, X) \
-    if (verbosity >= n) cout << X << endl
-
 void Bucket::remove_half(std::mt19937_64& mtrand)
 {
     const auto orig_size = get_size();
@@ -104,7 +101,7 @@ void Bucket::remove_sol(const vector<Lit>& cl,
         if (sol) remove(at);
         else elems_dat[at].updated+=updated;
     }
-    if (size_before > get_size() && verbosity >=2) {
+    if (size_before > get_size()) {
         print_verb(2, "Filtered. Removed: " << size_before - get_size());
     }
 }
@@ -137,7 +134,7 @@ void PepinInt::set_n_cls(uint32_t n_cls)
 
 PepinInt::PepinInt(const double _epsilon, const double _delta,
                      const uint32_t seed, const uint32_t _verbosity) :
-    bucket(all_default_weights, verbosity)
+    bucket(all_default_weights, _verbosity)
 {
     mtrand.seed(seed);
     epsilon = _epsilon;
@@ -195,6 +192,11 @@ PepinInt::~PepinInt()
     mpq_clear(center_100);
     mpz_clear(ni_plus_bucketsz);
     mpz_clear(constant_one_z);
+
+    // Return values freed
+    mpq_clear(weigh_num_sols);
+    mpf_clear(low_prec_weigh_num_sols);
+    mpf_clear(low_prec_num_points);
 }
 
 const char* PepinInt::get_version_info() const {
@@ -605,7 +607,7 @@ void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
     << endl;
 }
 
-void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
+bool PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     assert(thresh != 0 && "The number of clauses was not set beforehand!");
     assert(num_cl_added < n_cls_declared);
     if (num_cl_added == 0) {
@@ -614,6 +616,11 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
             mpz_mul_ui(prod_precision, prod_precision, w.divisor);
         }
         last_10k_time = cpuTime();
+    }
+    if (num_cl_added >= n_cls_declared) {
+        cout << "ERROR: you are trying to add more clauses than were declared." << endl;
+        assert(false);
+        exit(-1);
     }
 
     num_cl_added++;
@@ -683,13 +690,11 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         // NOTE: Bignum cannot do 2**(float), so we do:
         //    z*2**floor(float)
         //    where we calculate z = 2**(float-floor(float)) in C++, i.e. low precision
-        mpf_t low_prec_num_points;
         mpf_init2(low_prec_num_points, 1000);
         mpf_set_d(low_prec_num_points, std::exp2(buck_size_log2-std::floor(buck_size_log2)));
         mpf_mul_2exp(low_prec_num_points, low_prec_num_points, std::floor(buck_size_log2));
 
         //bucket_size/sampl_prob
-        mpq_t weigh_num_sols;
         mpq_init(weigh_num_sols);
         mpq_set_ui(weigh_num_sols, bucket.get_size(), 1);
         mpq_div_2exp(sampl_prob, constant_one, sampl_prob_expbit);
@@ -702,16 +707,33 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         mpq_div(weigh_num_sols, weigh_num_sols, tmp2);
         mpq_clear(tmp2);
 
-        mpf_t low_prec_weigh_num_sols;
         mpf_init2(low_prec_weigh_num_sols, 100);
         mpf_set_q(low_prec_weigh_num_sols, weigh_num_sols);
 
-        print_verb(1, "Low-repcision approx num points: " << std::fixed << std::setprecision(0) << low_prec_num_points << std::setprecision(10));
-        print_verb(1, "Weight no. solutions: " << weigh_num_sols);
-        print_verb(1, "Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << low_prec_weigh_num_sols);
-
-        mpq_clear(weigh_num_sols);
-        mpf_clear(low_prec_weigh_num_sols);
-        mpf_clear(low_prec_num_points);
+        ret_set = true;
+        return true;
     }
+    return false;
+}
+
+void PepinInt::check_ready() const
+{
+    if (!ret_set) {
+        cout << "ERROR, return value not yet available" << endl;
+        assert(false);
+        exit(-1);
+    }
+}
+
+const mpf_t* PepinInt::get_low_prec_appx_num_points() const {
+    check_ready();
+    return &low_prec_num_points;
+}
+const mpf_t* PepinInt::get_low_prec_appx_weighted_sol() const {
+    check_ready();
+    return &low_prec_weigh_num_sols;
+}
+const mpq_t* PepinInt::get_appx_weighted_sol() const {
+    check_ready();
+    return &weigh_num_sols;
 }

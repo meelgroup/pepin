@@ -50,6 +50,10 @@ namespace PepinIntNS {
 
 typedef uint16_t WeightPrec;
 
+
+#define print_verb(n, X) \
+    if (verbosity >= n) cout << "c [dnfs] " << X << endl
+
 struct Weight {
     Weight() {}
     Weight(WeightPrec _dividend, WeightPrec _divisor) :
@@ -267,11 +271,16 @@ struct PepinInt {
         return nvars;
     }
 
-    void add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num);
+    bool add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num);
     void magic(const vector<Lit>& cl, mpz_t ni);
     void get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out);
     void approx_binomial(mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out);
     void add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num_samples);
+
+    void check_ready() const;
+    const mpf_t* get_low_prec_appx_num_points() const;
+    const mpf_t* get_low_prec_appx_weighted_sol() const;
+    const mpq_t* get_appx_weighted_sol() const;
 
     uint32_t nVars() const {
         return nvars;
@@ -286,13 +295,9 @@ struct PepinInt {
         weights[var].dividend = dividend;
         weights[var].divisor = divisor;
         weights[var].bits_of_entropy =  weights[var].calc_bits_of_entropy();
-
-        if (verbosity >= 2) {
-            cout << "var " << var+1
-            << " dividend:" << dividend
-            << " divisor:" << divisor
-            << endl;
-        }
+        print_verb(2, "var " << (var+1)
+        << " dividend:" << dividend
+        << " divisor:" << divisor);
     }
 
     void set_n_cls(uint32_t n_cls);
@@ -345,6 +350,13 @@ struct PepinInt {
     mpz_t ni_plus_bucketsz;
     mpz_t ni;
     vector<Lit> cl_tmp;
+
+
+    // Return
+    bool ret_set = false;
+    mpq_t weigh_num_sols;
+    mpf_t low_prec_weigh_num_sols;
+    mpf_t low_prec_num_points;
 };
 
 }

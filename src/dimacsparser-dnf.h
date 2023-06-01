@@ -118,7 +118,7 @@ bool DimacsParser<C, S>::readClause(C& in)
         var = std::abs(parsed_lit)-1;
 
         if (var > max_var) {
-            std::cerr
+            std::cout
             << "ERROR! "
             << "Variable requested is too large for DIMACS parser parameter: "
             << var << endl
@@ -129,7 +129,7 @@ bool DimacsParser<C, S>::readClause(C& in)
         }
 
         if (var >= (1ULL<<28)) {
-            std::cerr
+            std::cout
             << "ERROR! "
             << "Variable requested is far too large: " << var + 1 << endl
             << "--> At line " << lineNum+1
@@ -139,14 +139,14 @@ bool DimacsParser<C, S>::readClause(C& in)
         }
 
         if (!header_found) {
-            std::cerr
+            std::cout
             << "ERROR! "
             << "DIMACS header ('p cnf vars cls') never found!" << endl;
             return false;
         }
 
         if ((int)var >= num_header_vars) {
-            std::cerr
+            std::cout
             << "ERROR! "
             << "Variable requested is larger than the header told us." << endl
             << " -> var is : " << var + 1 << endl
@@ -158,7 +158,7 @@ bool DimacsParser<C, S>::readClause(C& in)
 
         lits.push_back( (parsed_lit > 0) ? Lit(var, false) : Lit(var, true) );
         if (*in != ' ') {
-            std::cerr
+            std::cout
             << "ERROR! "
             << "After last element on the line must be 0" << endl
             << "--> At line " << lineNum+1
@@ -222,7 +222,7 @@ bool DimacsParser<C, S>::parse_header(C& in)
     }
     if (str == "dnf" || str == "cnf") {
         if (header_found) {
-            std::cerr << "ERROR: CNF header ('p dnf vars cls') found twice in file! Exiting." << endl;
+            std::cout << "ERROR: CNF header ('p dnf vars cls') found twice in file! Exiting." << endl;
             exit(-1);
         }
         header_found = true;
@@ -233,21 +233,21 @@ bool DimacsParser<C, S>::parse_header(C& in)
             return false;
         }
         if (verbosity) {
-            cout << "c -- header says num vars:   " << std::setw(12) << num_header_vars << endl;
-            cout << "c -- header says num clauses:" <<  std::setw(12) << num_header_cls << endl;
+            cout << "c [dnfs] header says num vars:   " << std::setw(12) << num_header_vars << endl;
+            cout << "c [dnfs] header says num clauses:" <<  std::setw(12) << num_header_cls << endl;
         }
         if (num_header_vars < 0) {
-            std::cerr << "ERROR: Number of variables in header cannot be less than 0" << endl;
+            std::cout << "ERROR: Number of variables in header cannot be less than 0" << endl;
             return false;
         }
         if (num_header_cls < 0) {
-            std::cerr << "ERROR: Number of clauses in header cannot be less than 0" << endl;
+            std::cout << "ERROR: Number of clauses in header cannot be less than 0" << endl;
             return false;
         }
         solver->set_n_cls(num_header_cls);
         solver->new_vars(num_header_vars);
     } else {
-        std::cerr
+        std::cout
         << "PARSE ERROR! Unexpected char (hex: " << std::hex
         << std::setw(2)
         << std::setfill('0')

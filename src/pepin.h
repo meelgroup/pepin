@@ -119,7 +119,7 @@ struct Pepin {
     void set_force_eager(const int force_eager);
     void set_fast_center_calc(const int fast_center_calc);
     uint32_t new_vars(const uint32_t n);
-    void add_clause(const std::vector<Lit>& cl, const uint64_t dnf_cl_num);
+    bool add_clause(const std::vector<Lit>& cl, const uint64_t dnf_cl_num);
     uint32_t nVars() const;
     void set_var_weight(
             const uint32_t var,
@@ -129,9 +129,9 @@ struct Pepin {
     void set_n_cls(uint32_t n_cls);
     static const char* get_version_info();
     static const char* get_compilation_env();
-    mpf_t* get_low_prec_appx_num_points() const;
-    mpq_t* get_low_prec_appx_weighted_sol() const;
-    mpf_t* get_appx_weighted_sol() const;
+    const mpf_t* get_low_prec_appx_num_points() const;
+    const mpf_t* get_low_prec_appx_weighted_sol() const;
+    const mpq_t* get_appx_weighted_sol() const;
 
     PepinPrivate* pepin = NULL;
 };
