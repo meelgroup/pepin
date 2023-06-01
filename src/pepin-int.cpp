@@ -78,14 +78,11 @@ void Bucket::remove_sol(const vector<Lit>& cl,
 
             //lazy, let's make it real
             if (elems[i+var] == 3) {
-                updated = 1;
+                updated = true;
                 WeightPrec w;
 
                 if (all_default_weights || var_weights[var].divisor == 2) {
-                    if (rand_pool_bits == 0) {
-                        rand_pool = mtrand();
-                        rand_pool_bits = 64;
-                    }
+                    if (rand_pool_bits == 0) {rand_pool = mtrand(); rand_pool_bits = 64;}
                     w = rand_pool & 1;
                     rand_pool_bits--;
                     rand_pool >>= 1;
@@ -636,11 +633,13 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     sort(cl_tmp.begin(), cl_tmp.end());
     cl_tmp.erase(unique( cl_tmp.begin(), cl_tmp.end() ), cl_tmp.end());
 
-    std::shuffle(cl_tmp.begin(), cl_tmp.end(), mtrand);
     print_verb("Filtering bucket from solutions. Orig sz:" << bucket.get_size());
     bucket.remove_sol(cl_tmp, weights, mtrand);
     print_verb("Bucket size now: " << bucket.get_size());
     if (verbosity >= 3) bucket.print_contents();
+
+    // Why do we need to shuffle?
+    std::shuffle(cl_tmp.begin(), cl_tmp.end(), mtrand);
 
     // Computing number of samples needed
     magic(cl_tmp, ni);
@@ -726,4 +725,3 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         mpf_clear(high_prec);
     }
 }
-
