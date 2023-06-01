@@ -31,7 +31,7 @@ Notice that the cube `1 2 3` has 2**17=131072 points, and `1 -5` has 2**18=26214
 ## Current Limitations
 
 The following will likely be lifted in 1-2 weeks:
-* `make install` is not yet working, will fix it next week.
+* `make install` is not yet working
 * Number of variables must be divisible by 4
 * [May take more time] Can only return estimate after the exact number of clauses have been passed in as promised
 

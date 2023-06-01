@@ -267,6 +267,10 @@ struct PepinInt {
         nvars = n;
         bucket.set_nvars(n);
         seen.resize(n, false);
+        if (n % 4 != 0) {
+            cout << "ERROR: we currently cannot handle variable numbers not divisible by 4. Will fix soon." << endl;
+            exit(-1);
+        }
 
         return nvars;
     }
