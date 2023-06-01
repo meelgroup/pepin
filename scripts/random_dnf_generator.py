@@ -32,9 +32,9 @@ parser = OptionParser(usage)
 parser.add_option("--instances", dest="instances", type=int,
                   help="How many instances to generate")
 parser.add_option("--n", dest="n_info", default="",
-                  help="start-stop-step for N in the form of 'start,stop,end'")
+                  help="start-stop-step for N (number of variables) in the form of 'start,stop,end'")
 parser.add_option("--mdensity", dest="mdensity_info", default="",
-                  help="start-stop-step for M density in the form of 'start,stop,end'")
+                  help="start-stop-step for M density (i.e. number of clauses) in the form of 'start,stop,end'")
 parser.add_option("--msize", dest="msize_info", default="",
                   help="start-stop-step for clause size in the form of 'start,stop,end'")
 parser.add_option("--scaling",
@@ -143,7 +143,7 @@ for n in range(nLow,nHigh,nStep):
             print(n,mSizeLow,mSizeHigh,mSizeStep)
         for k in range(int(mSizeLow1),int(mSizeHigh1),int(mSizeStep1)):
             for i in range(options.instances):
-                opStr = "p cnf "+str(n)+" "+str(int(n*m))+'\n'
+                opStr = "p dnf "+str(n)+" "+str(int(n*m))+'\n'
                 for j in range(int(n*m)):
                     sampVars = random.sample(range(1,n+1),k)
                     if (j%200 == 0):

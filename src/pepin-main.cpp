@@ -55,7 +55,7 @@ po::options_description help_options;
 po::variables_map vm;
 po::positional_options_description p;
 double startTime;
-int verb = 0;
+int verb = 1;
 int seed = 1;
 double epsilon = 0.5;
 double delta = 0.36;

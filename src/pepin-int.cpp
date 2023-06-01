@@ -38,16 +38,14 @@ using std::endl;
 
 using namespace PepinIntNS;
 
-#define print_verb(X) \
-    if (verbosity) cout << X << endl
-#define print_verb2(X) \
-    if (verbosity >= 2) cout << X << endl
+#define print_verb(n, X) \
+    if (verbosity >= n) cout << X << endl
 
 void Bucket::remove_half(std::mt19937_64& mtrand)
 {
     const auto orig_size = get_size();
     if (get_size() > 0) {
-        print_verb("Removing half ... bucket size now: " << get_size());
+        print_verb(1, "Removing half ... bucket size now: " << get_size());
     }
     for(size_t i = 0, at = 0; i < elems.size(); i+=nvars, at++) {
         if (elems_dat[at].empty) continue;
@@ -56,7 +54,7 @@ void Bucket::remove_half(std::mt19937_64& mtrand)
         remove(at);
     }
     if (orig_size > 0) {
-        print_verb(" after: " << get_size() << " ratio: " << std::setprecision(2) << ((double)get_size()/(double)orig_size));
+        print_verb(2, " after: " << get_size() << " ratio: " << std::setprecision(2) << ((double)get_size()/(double)orig_size));
     }
 }
 
@@ -107,7 +105,7 @@ void Bucket::remove_sol(const vector<Lit>& cl,
         else elems_dat[at].updated+=updated;
     }
     if (size_before > get_size() && verbosity >=2) {
-        print_verb("Filtered. Removed: " << size_before - get_size());
+        print_verb(2, "Filtered. Removed: " << size_before - get_size());
     }
 }
 
@@ -129,7 +127,7 @@ void PepinInt::set_n_cls(uint32_t n_cls)
 {
     thresh = (int)(4.0*(std::log2(n_cls+1)/
         (epsilon*epsilon))*std::log2(1.0/delta));
-    print_verb("Threshold computed: " << thresh
+    print_verb(2, "Threshold computed: " << thresh
     << " -- cl num: " << n_cls
     << " epsilon: " << std::setprecision(5) << epsilon
     << " delta: " << std::setprecision(5) <<delta);
@@ -251,7 +249,7 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
 {
     get_cl_precision(cl, n);
 
-    print_verb2("Clause precision: " << n << endl);
+    print_verb(3, "Clause precision: " << n);
 
     //calculate center_magic = n*sampl_prob
     if (sampl_prob_expbit_before_magic == sampl_prob_expbit &&
@@ -272,21 +270,21 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
     while (mpq_cmp_ui(center_magic, thresh, 1) > 0) {
         //mpq_cmp_ui(u,vn,vd) -- Compare U with Vn/Vd
         quick_halfing_ran = true;
-        print_verb2("center_magic is larger than thresh: "
+        print_verb(3, "center_magic is larger than thresh: "
                 << thresh << " halfing, incrementing sampl_prob_expbit.");
         mpq_mul(center_magic, center_magic, constant_half);
         sampl_prob_expbit++;
-        print_verb( "Sampl. prob is now: 2**-" << sampl_prob_expbit
+        print_verb(2, "Sampl. prob is now: 2**-" << sampl_prob_expbit
             << " nvars-expprob = " << nvars-sampl_prob_expbit
             << " bucket size: " << bucket.get_size());
         bucket.remove_half(mtrand);
     }
     if (quick_halfing_ran) {
-        print_verb("Sampl. prob is now: 2**-" << sampl_prob_expbit
+        print_verb(2, "Sampl. prob is now: 2**-" << sampl_prob_expbit
         << " nvars-expprob = " << nvars-sampl_prob_expbit
         << " bucket size: " << bucket.get_size());
     }
-    print_verb("Approx is: " << center_magic);
+    print_verb(2, "Approx is: " << center_magic);
     mpz_set_ui(ni_plus_bucketsz, 0);
 
     ///recreate sampl_prob
@@ -295,16 +293,16 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
 
     while(true)  {
         mpz_add_ui(ni_plus_bucketsz, samples_needed, bucket.get_size());
-        print_verb("bucket size: " << bucket.get_size());
-        print_verb("ni_plus_bucketsz:" << ni_plus_bucketsz);
+        print_verb(2, "bucket size: " << bucket.get_size());
+        print_verb(2, "ni_plus_bucketsz:" << ni_plus_bucketsz);
         if (mpz_cmp_ui(ni_plus_bucketsz, thresh) < 0) {
-            print_verb2("Less than threshold " << thresh << " -> breaking");
+            print_verb(3, "Less than threshold " << thresh << " -> breaking");
             break;
         }
 
         approx_binomial(samples_needed, constant_half, samples_needed);
         sampl_prob_expbit++;
-        print_verb("Sampl. prob is now: 2**-" << sampl_prob_expbit
+        print_verb(2, "Sampl. prob is now: 2**-" << sampl_prob_expbit
         << " nvars-expprob = " << nvars-sampl_prob_expbit
         << " bucket size: " << bucket.get_size());
         bucket.remove_half(mtrand);
@@ -331,13 +329,13 @@ void PepinInt::approx_binomial(
         mpz_set_ui(samples_needed_out, ni);
 
         if (mpz_cmp_ui(samples_needed_out, 1) >= 0) {
-            print_verb("Did binomial distribution. n: " << n_low_prec
+            print_verb(2, "Did binomial distribution. n: " << n_low_prec
                     << " sampl_prob: " << sampl_prob_center_low_prec);
         }
         return;
     } else {
         //Apporximating
-        print_verb( "Approximating with another distribution, n is too large");
+        print_verb(2,  "Approximating with another distribution, n is too large");
 
         //If n and sampl_prob is the same as last time, we can use old values
         //This is PURELY for speed (no change to values)
@@ -371,8 +369,8 @@ void PepinInt::approx_binomial(
             uint64_t ni = poiss(mtrand);
             mpz_set_ui(samples_needed_out, ni);
 
-            print_verb("Used poission distribution");
-            print_verb("Mu (i.e. center): " << center_low_prec);
+            print_verb(2, "Used poission distribution");
+            print_verb(2, "Mu (i.e. center): " << center_low_prec);
             return;
         } else {
             mpq_t center_for_a_2;
@@ -465,7 +463,7 @@ void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num
     bool lazy = bits_of_entropy/2.0-std::log2(num+1) > 30;
 
     if (force_eager) lazy = false;
-    print_verb2("Lazy: " << lazy);
+    print_verb(3, "Lazy: " << lazy);
     lazy_samples_called += lazy;
 
     if (lazy) {
@@ -543,7 +541,7 @@ void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num
 
             samples.push_back(s);
         }
-        print_verb("Generated " << todo << " extra non-unique samples");
+        print_verb(2, "Generated " << todo << " extra non-unique samples");
         assert(sol.size() == ws.size());
         assert(sol.size() % nVars() == 0);
         if (samples.size()*nVars() != sol.size()) {
@@ -565,7 +563,7 @@ void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num
             samples.resize(j+1);
         }
         if (samples.size() < num) todo = (num - samples.size())*2;
-        print_verb("Now we have " << samples.size() << " unique samples, T:"
+        print_verb(2, "Now we have " << samples.size() << " unique samples, T:"
             << (cpuTime() - myTime));
     }
 
@@ -578,7 +576,7 @@ void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num
         bucket.add(&sol[samples[i].sol_at], dnf_cl_num);
     }
 
-    print_verb("Added " << num << " unique samples, new bucket size: " << bucket.get_size());
+    print_verb(2, "Added " << num << " unique samples, new bucket size: " << bucket.get_size());
 }
 
 void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
@@ -611,7 +609,7 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     assert(thresh != 0 && "The number of clauses was not set beforehand!");
     assert(num_cl_added < n_cls_declared);
     if (num_cl_added == 0) {
-        print_verb("First clause added, calculating prod precision");
+        print_verb(2, "First clause added, calculating prod precision");
         for(const auto w: weights) {
             mpz_mul_ui(prod_precision, prod_precision, w.divisor);
         }
@@ -619,8 +617,8 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     }
 
     num_cl_added++;
-    print_verb("Adding clause: " << cl);
-    print_verb("CL num: " << num_cl_added);
+    print_verb(2, "Adding clause: " << cl);
+    print_verb(2, "CL num: " << num_cl_added);
     assert(bucket.nVars() == nVars());
     for(const Lit& l: cl) assert(l.var() < nvars);
 
@@ -629,15 +627,15 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     sort(cl_tmp.begin(), cl_tmp.end());
     cl_tmp.erase(unique( cl_tmp.begin(), cl_tmp.end() ), cl_tmp.end());
 
-    print_verb("Filtering bucket from solutions. Orig sz:" << bucket.get_size());
+    print_verb(2, "Filtering bucket from solutions. Orig sz:" << bucket.get_size());
     bucket.remove_sol(cl_tmp, weights, mtrand);
-    print_verb("Bucket size now: " << bucket.get_size());
+    print_verb(2, "Bucket size now: " << bucket.get_size());
     if (verbosity >= 3) bucket.print_contents();
 
     // Computing number of samples needed
     magic(cl_tmp, ni);
 
-    print_verb("Generating " << ni << " samples");
+    print_verb(2, "Generating " << ni << " samples");
     if (!mpz_fits_ulong_p(ni)) {
         cout << "ERROR: ni does not fit a long unsigned int! Value is:" << endl;
         mpz_out_str(stdout, 10, ni);
@@ -647,7 +645,7 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
     uint64_t num_samples = mpz_get_ui(ni);
     if (num_samples > 0) add_uniq_samples(cl_tmp, dnf_cl_num, num_samples);
 
-    if (verbosity) {
+    if (verbosity >= 2) {
         cout << "-- after add_clause --" << endl;
         mpq_div_2exp(sampl_prob, constant_one, sampl_prob_expbit);
         //cout << "sampl_prob:" << sampl_prob << endl;
@@ -656,19 +654,18 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         cout << "Threshold: " << thresh << endl;
     }
     if ((num_cl_added & 0x3fff) == 0x3fff) {
-        cout << "--==>> Num CL processed: " << std::setw(10) << num_cl_added
+        print_verb(1, "--==>> Num CL processed: " << std::setw(10) << num_cl_added
         << " took T:" << std::setw(7) << std::setprecision(4) << cpuTime()-last_10k_time
         << " Bucket sz: " << std::setw(5) << bucket.get_size()
-        << " sampl added since last print: " << added_samples_during_processing
-        << endl;
+        << " sampl added since last print: " << added_samples_during_processing);
         last_10k_time = cpuTime();
         added_samples_during_processing = 0;
     }
 
     if (num_cl_added == n_cls_declared) {
-        print_verb("*** Finished.***");
-        print_verb("Num CL processed: " << num_cl_added);
-        print_verb("Sample function called: " << samples_called
+        print_verb(1, "*** Finished.***");
+        print_verb(1, "Num CL processed: " << num_cl_added);
+        print_verb(1, "Sample function called: " << samples_called
         << " of which lazy: " << std::setprecision(6)
         << ((double)lazy_samples_called/(double)samples_called)*100.0
         << " %");
@@ -679,8 +676,8 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         //Exp description
         double buck_size_log2 = log2(bucket.get_size());
         buck_size_log2 += sampl_prob_expbit;
-        print_verb("Bucket expbit: " << sampl_prob_expbit << " bucket log2: " << log2(bucket.get_size()));
-        print_verb("bucket_size/sampl_prob : 2**" << buck_size_log2);
+        print_verb(1, "Bucket expbit: " << sampl_prob_expbit << " bucket log2: " << log2(bucket.get_size()));
+        print_verb(1, "bucket_size/sampl_prob : 2**" << buck_size_log2);
 
         // Calculate the number of points in the N-dimensional space
         // NOTE: Bignum cannot do 2**(float), so we do:
@@ -709,9 +706,9 @@ void PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         mpf_init2(low_prec_weigh_num_sols, 100);
         mpf_set_q(low_prec_weigh_num_sols, weigh_num_sols);
 
-        print_verb("Low-repcision approx num points: " << std::fixed << std::setprecision(0) << low_prec_num_points << std::setprecision(10));
-        print_verb("Weight no. solutions: " << weigh_num_sols);
-        print_verb("Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << low_prec_weigh_num_sols);
+        print_verb(1, "Low-repcision approx num points: " << std::fixed << std::setprecision(0) << low_prec_num_points << std::setprecision(10));
+        print_verb(1, "Weight no. solutions: " << weigh_num_sols);
+        print_verb(1, "Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << low_prec_weigh_num_sols);
 
         mpq_clear(weigh_num_sols);
         mpf_clear(low_prec_weigh_num_sols);

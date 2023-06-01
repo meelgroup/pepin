@@ -106,7 +106,7 @@ def get_num_vars(fullfilename):
     with open(fullfilename, "r") as f:
         for line in f:
             line = line.strip()
-            if "p cnf" in line:
+            if "p dnf" in line:
                 nvars = line.split(" ")[2]
 
     assert nvars is not None
@@ -231,13 +231,13 @@ if __name__ == "__main__":
 
     t = time.time();
     print("Generating small random instances...")
-    ret = os.system("./random_dnf_generator.py --instances 10 --n '100,1000,300' --mdensity '0.3,1.0,0.2' --msize '10,80,20' --noscaling --monotone %s/" % options.dir)
+    ret = os.system("./random_dnf_generator.py --instances 10 --n '100,1001,300' --mdensity '0.2,1.1,0.2' --msize '10,80,20' --noscaling --monotone %s/" % options.dir)
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
 
     print("Generating large random instances...")
     t = time.time();
-    os.system("./random_dnf_generator.py --instances 10 --n '1000,10000,3000' --mdensity '0.01,0.03,0.01' --msize '100,350,50' --noscaling --monotone %s/" % options.dir)
+    os.system("./random_dnf_generator.py --instances 10 --n '1000,10001,3000' --mdensity '0.01,0.04,0.01' --msize '100,350,50' --noscaling --monotone %s/" % options.dir)
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
 
