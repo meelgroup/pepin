@@ -90,13 +90,13 @@ void Bucket::remove_sol(const vector<Lit>& cl,
                     std::uniform_int_distribution<int> uid(0,var_weights[var].divisor-1);
                     w = uid(mtrand);
                 }
-                if (   (all_default_weights && (w == 0))
+                if ((all_default_weights && (w == 0))
                     || (!all_default_weights && w < var_weights[var].dividend)) {
-                    if (!lit.sign() != 1) {sol=false;break;}
                     elems.set(i+var, 1);
+                    if (!lit.sign() != 1) {sol=false;break;}
                 } else {
-                    if (!lit.sign() != 0) {sol=false;break;}
                     elems.set(i+var, 0);
+                    if (!lit.sign() != 0) {sol=false;break;}
                 }
             } else {
                 //Filter on eager
