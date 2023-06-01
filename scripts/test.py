@@ -205,7 +205,7 @@ def set_up_parser():
                       type=int, help="How many tests with self-test")
 
     parser.add_option("--dir", dest="dir", type=str,
-                      default="../../DNF_Counting/scripts/test/",
+                      default="tests/",
                       help="Tests are in this dir")
 
     parser.add_option("--epsilon", dest="epsilon", default="0.5",
@@ -227,6 +227,20 @@ if __name__ == "__main__":
 
     # run tests
     num_tested = 0
+    os.system("rm -f tests/random_*.dnf")
+
+    t = time.time();
+    print("Generating small random instances...")
+    ret = os.system("./random_dnf_generator.py --instances 10 --n '100,1000,300' --mdensity '0.3,1.0,0.2' --msize '10,80,20' --noscaling --monotone %s/" % options.dir)
+    assert ret == 0, "random DNF generation failed"
+    print("Done, T: ", time.time()-t)
+
+    print("Generating large random instances...")
+    t = time.time();
+    os.system("./random_dnf_generator.py --instances 10 --n '1000,10000,3000' --mdensity '0.01,0.03,0.01' --msize '100,350,50' --noscaling --monotone %s/" % options.dir)
+    assert ret == 0, "random DNF generation failed"
+    print("Done, T: ", time.time()-t)
+
     files = os.listdir(options.dir)
     for f in files:
         if ".dnf" in f:
