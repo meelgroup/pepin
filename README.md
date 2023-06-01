@@ -29,13 +29,18 @@ Notice that the cube `1 2 3` has 2**17 points, so 131072 points, and `1 -5` has 
 
 ## Library Use
 
-The header file, `pepin.h` is quite clean. Use as:
-
+The header file, `pepin.h` is made to be used as a library. Use as:
 ```
 #include <pepin.h>
 using namespace PepinNS;
 
 int main() {
+  Pepin pepin;
+  pepin.new_vars(20);
+  pepin.set_n_cls(2);
+
+  vector<Lit> cl = {itol(1), itol(2), itol(3)};
+  pepin.add_clause(cl);
     
 }
 ```

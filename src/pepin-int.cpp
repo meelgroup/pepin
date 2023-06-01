@@ -607,7 +607,7 @@ void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
     << endl;
 }
 
-bool PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
+bool PepinInt::add_clause(const vector<Lit>& cl) {
     assert(thresh != 0 && "The number of clauses was not set beforehand!");
     assert(num_cl_added < n_cls_declared);
     if (num_cl_added == 0) {
@@ -623,7 +623,6 @@ bool PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         exit(-1);
     }
 
-    num_cl_added++;
     print_verb(2, "Adding clause: " << cl);
     print_verb(2, "CL num: " << num_cl_added);
     assert(bucket.nVars() == nVars());
@@ -650,8 +649,9 @@ bool PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         exit(-1);
     }
     uint64_t num_samples = mpz_get_ui(ni);
-    if (num_samples > 0) add_uniq_samples(cl_tmp, dnf_cl_num, num_samples);
+    if (num_samples > 0) add_uniq_samples(cl_tmp, num_cl_added, num_samples);
 
+    num_cl_added++;
     if (verbosity >= 2) {
         cout << "-- after add_clause --" << endl;
         mpq_div_2exp(sampl_prob, constant_one, sampl_prob_expbit);
@@ -678,7 +678,7 @@ bool PepinInt::add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num) {
         << " %");
 
         //Statistics about the samples
-        if (verbosity >= 1) bucket.print_elems_stats(dnf_cl_num);
+        if (verbosity >= 1) bucket.print_elems_stats(num_cl_added);
 
         //Exp description
         double buck_size_log2 = log2(bucket.get_size());

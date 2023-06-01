@@ -277,7 +277,7 @@ bool DimacsParser<C, S>::parse_and_add_clause(C& in)
         return false;
     }
     lineNum++;
-    solver->add_clause(lits, norm_clauses_added);
+    solver->add_clause(lits);
     norm_clauses_added++;
     return true;
 }

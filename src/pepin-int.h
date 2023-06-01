@@ -271,7 +271,7 @@ struct PepinInt {
         return nvars;
     }
 
-    bool add_clause(const vector<Lit>& cl, const uint64_t dnf_cl_num);
+    bool add_clause(const vector<Lit>& cl);
     void magic(const vector<Lit>& cl, mpz_t ni);
     void get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out);
     void approx_binomial(mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out);

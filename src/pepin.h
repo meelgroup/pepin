@@ -25,6 +25,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cassert>
 #include <vector>
 #include <ostream>
 #include <gmp.h>
@@ -81,9 +82,10 @@ public:
     constexpr bool operator >=  (const Lit& p) const {
         return x >= p.x;
     }
-    constexpr static Lit toLit(uint32_t data)
+    constexpr static Lit itol(int32_t data)
     {
-        return Lit(data);
+        assert(data != 0);
+        return Lit(abs(data)-1, data < 0);
     }
 };
 
@@ -112,14 +114,14 @@ inline std::ostream& operator<<(std::ostream& co, const std::vector<Lit>& lits)
 }
 
 struct Pepin {
-    Pepin(const double epsilon, const double delta, const uint32_t seed,
-              const uint32_t verbosity = 1);
+    Pepin(const double epsilon = 0.5, const double delta = 0.5, const uint32_t seed = 1,
+              const uint32_t verbosity = 0);
     ~Pepin();
 
     void set_force_eager(const int force_eager);
     void set_fast_center_calc(const int fast_center_calc);
     uint32_t new_vars(const uint32_t n);
-    bool add_clause(const std::vector<Lit>& cl, const uint64_t dnf_cl_num);
+    bool add_clause(const std::vector<Lit>& cl);
     uint32_t nVars() const;
     void set_var_weight(
             const uint32_t var,

@@ -91,7 +91,7 @@ def get_rel_count_Pepin(fullfilename, seed_here):
         l = l.decode()
         if "Low-precision weighted no. solutions" in l:
             #print(l)
-            relcount2 = decimal.Decimal(l.split()[4])
+            relcount2 = decimal.Decimal(l.split()[6])
 
     if relcount2 is None:
         print("Error, Pepin failed to count!")
@@ -126,7 +126,7 @@ def print_quant_perc(x):
 def test(fname, num_tested):
     fullfilename = "%s/%s" % (options.dir, fname)
     print("----------------------------------------- file num: %-10d" % num_tested)
-    print("Dealing with file" , fname)
+    print("Dealing with file %s/%s" % (options.dir, fname))
     nvars = get_num_vars(fullfilename)
 
     if options.self_test:
@@ -205,8 +205,11 @@ def set_up_parser():
                       type=int, help="How many tests with self-test")
 
     parser.add_option("--dir", dest="dir", type=str,
-                      default="tests/",
+                      default="tests",
                       help="Tests are in this dir")
+
+    parser.add_option("--instances", dest="instances", default="10",
+                      type=str, help="How many files per type")
 
     parser.add_option("--epsilon", dest="epsilon", default="0.5",
                       type=str, help="Epsilon to use")
@@ -231,13 +234,13 @@ if __name__ == "__main__":
 
     t = time.time();
     print("Generating small random instances...")
-    ret = os.system("./random_dnf_generator.py --instances 10 --n '100,1001,300' --mdensity '0.2,1.1,0.2' --msize '10,80,20' --noscaling --monotone %s/" % options.dir)
+    ret = os.system("./random_dnf_generator.py --instances %s --n '100,1001,300' --mdensity '0.2,1.1,0.2' --msize '10,80,20' --noscaling --monotone %s/" % (options.instances, options.dir))
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
 
     print("Generating large random instances...")
     t = time.time();
-    os.system("./random_dnf_generator.py --instances 10 --n '1000,10001,3000' --mdensity '0.01,0.04,0.01' --msize '100,350,50' --noscaling --monotone %s/" % options.dir)
+    os.system("./random_dnf_generator.py --instances %s --n '1000,10001,3000' --mdensity '0.01,0.04,0.01' --msize '100,350,50' --noscaling --monotone %s/" % (options.instances, options.dir))
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
 

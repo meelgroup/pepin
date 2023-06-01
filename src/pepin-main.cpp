@@ -250,7 +250,8 @@ int main(int argc, char** argv)
     }
 
     double starTime = cpuTime();
-    cout << "c [dnfs] using seed: " << seed << endl;
+    cout << "c [dnfs] using epsilon: " << epsilon
+        << " delta: "<< delta << " seed: " << seed << endl;
 
     //parsing the input
     if (vm.count("input") == 0) {
@@ -261,13 +262,13 @@ int main(int argc, char** argv)
     readInAFile(inp);
 
     auto low_prec_num_points = dnfs->get_low_prec_appx_num_points();
-    cout << "c [dnfs] Low-repcision approx num points: " << std::fixed << std::setprecision(0)
+    cout << "c [dnfs] Low-precision approx num points: " << std::fixed << std::setprecision(0)
             << *low_prec_num_points << std::setprecision(10) << endl;
     auto weigh_num_sols = dnfs->get_appx_weighted_sol();
     cout << "c [dnfs] Weight no. solutions: " << *weigh_num_sols << endl;
 
     auto low_prec_weigh_num_sols = dnfs->get_low_prec_appx_weighted_sol();
-    cout << "c [dnfs] Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << low_prec_weigh_num_sols << endl;
+    cout << "c [dnfs] Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << *low_prec_weigh_num_sols << endl;
 
     cout << "c [dnfs] finished T: " << std::setprecision(2) << std::fixed << (cpuTime() - starTime)
     << endl;

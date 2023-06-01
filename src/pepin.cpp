@@ -62,9 +62,8 @@ const mpq_t* PepinNS::Pepin::get_appx_weighted_sol() const {
     return pepin->p->get_appx_weighted_sol();
 }
 
-bool PepinNS::Pepin::add_clause(const std::vector<Lit>& cl, const uint64_t dnf_cl_num)
-{
-    return pepin->p->add_clause(cl, dnf_cl_num);
+bool PepinNS::Pepin::add_clause(const std::vector<Lit>& cl) {
+    return pepin->p->add_clause(cl);
 }
 
 void PepinNS::Pepin::set_var_weight(
