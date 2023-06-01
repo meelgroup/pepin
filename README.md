@@ -27,7 +27,18 @@ Approx num points: 339456
 
 Notice that the cube `1 2 3` has 2**17=131072 points, and `1 -5` has 2**18=262144, so a total of 393216. But they overlap, `1 2 3 -5` is counted twice. So the exact number is: 327680. Hence, we over-approximated a bit here. The error is 1.0-339456/327680=.0359, so about 3.6%. This is well below the advertised 15% error allowed (i.e. epsilon 0.15).
 
+
+## Current Limitations
+
+The following will likely be lifted in 1-2 weeks:
+* `make install` is not yet working, will fix it next week.
+* Number of variables must be divisible by 4
+* [May take more time] Can only return estimate after the exact number of clauses have been passed in as promised
+
+The last limitation means you MUST have the `p dnf VARS CLS` header correct in your DNF file or the tool will NOT work.
+
 ## Library Use
+
 
 The header file, `pepin.h` is made to be used as a library. Use as:
 ```
@@ -53,6 +64,20 @@ int main() {
 ```
 
 The library is clean -- it cleans up after itself, you can have more than one in memory, you can even run them in parallel, if you wish.
+
+## Fuzzing
+
+You can fuzz by building DNFKLM from [here](https://gitlab.com/Shrotri/DNF_Counting/), putting the resulting `DNFKLM` binary into `build/`, and then:
+
+```
+cd build
+ln -s ../scripts/* .
+./build_norm.sh
+mkdir -f tests
+./fuzz_test.py
+```
+
+You can check `fuzz_test.py` to adjust etc.
 
 ## License
 MIT license all the way through
