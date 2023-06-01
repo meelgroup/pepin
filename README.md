@@ -16,6 +16,7 @@ And outputs a probabilistically approximate count.
 You can build&run it with:
 
 ```
+sudo apt-get install libgmp-dev zlib1g-dev libboost-program-options-dev cmake build-essential
 mkdir build
 cd build
 cmake ..
