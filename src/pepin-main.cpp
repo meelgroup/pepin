@@ -268,7 +268,7 @@ int main(int argc, char** argv)
     cout << "c [dnfs] Weight no. solutions: " << *weigh_num_sols << endl;
 
     auto low_prec_weigh_num_sols = dnfs->get_low_prec_appx_weighted_sol();
-    cout << "c [dnfs] Low-precision weighted no. solutions: " << std::scientific << std::setprecision(30) << *low_prec_weigh_num_sols << endl;
+    cout << "c [dnfs] Low-precision weighted no. solutions: " << std::scientific << std::setprecision(4) << *low_prec_weigh_num_sols << endl;
 
     cout << "c [dnfs] finished T: " << std::setprecision(2) << std::fixed << (cpuTime() - starTime)
     << endl;
