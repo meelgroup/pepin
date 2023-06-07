@@ -36,9 +36,9 @@ Currently, the algorithm can only return estimate after the exact number of clau
 
 ## Library Use
 
-The header file, `pepin.h` is made to be used as a library. Use as:
+You can install the library with `sudo make install`. Then, the installed header file `pepin/pepin.h` can be used as a library:
 ```
-#include <pepin.h>
+#include <pepin/pepin.h>
 #include <iostream>
 #include <iomanip>
 using namespace PepinNS;
