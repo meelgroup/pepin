@@ -32,12 +32,7 @@ Notice that the cube `1 2 3` has `2**17=131072` points, and `1 -5` has `2**18=26
 
 ## Current Limitations
 
-The following will likely be lifted in 1-2 weeks:
-* `make install` is not yet working
-* Number of variables must be divisible by 4
-* [May take more time] Can only return estimate after the exact number of clauses have been passed in as promised
-
-The last limitation means you MUST have the `p dnf VARS CLS` header correct in your DNF file or the tool will NOT work.
+Currently, the algorithm can only return estimate after the exact number of clauses have been passed in as promised. This means you must have the `p dnf VARS CLS` header correct in your DNF file or the tool will not work.
 
 ## Library Use
 
