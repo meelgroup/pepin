@@ -230,17 +230,23 @@ if __name__ == "__main__":
 
     # run tests
     num_tested = 0
-    os.system("rm -f tests/random_*.dnf")
+    os.system("rm -f tests/rand*.dnf")
 
     t = time.time();
     print("Generating small random instances...")
-    ret = os.system("./random_dnf_generator.py --instances %s --n '100,1001,300' --mdensity '0.2,1.1,0.2' --msize '10,80,20' --noscaling --monotone %s/" % (options.instances, options.dir))
+    ret = os.system("./random_dnf_generator.py --instances %s --n '101,1002,301' --mdensity '0.2,1.1,0.2' --msize '10,80,20' --noscaling --monotone %s/" % (options.instances, options.dir))
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
 
     print("Generating large random instances...")
     t = time.time();
-    os.system("./random_dnf_generator.py --instances %s --n '1000,10001,3000' --mdensity '0.01,0.04,0.01' --msize '100,350,50' --noscaling --monotone %s/" % (options.instances, options.dir))
+    ret = os.system("./random_dnf_generator.py --instances %s --n '1000,10001,3000' --mdensity '0.01,0.04,0.01' --msize '100,350,50' --noscaling --monotone %s/" % (options.instances, options.dir))
+    assert ret == 0, "random DNF generation failed"
+    print("Done, T: ", time.time()-t)
+
+    print("Generating random instances with odd num vars...")
+    t = time.time();
+    ret = os.system("./random_dnf_generator.py --instances %s --n '100,110,1' --mdensity '0.1,0.5,0.2' --msize '10,100,20' --noscaling --monotone %s/" % (options.instances, options.dir))
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
 

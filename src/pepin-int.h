@@ -278,6 +278,7 @@ struct PepinInt {
             num_fake_vars = 4-(n%4);
             n += num_fake_vars;
         }
+        print_verb(2, "fake num vars: " << num_fake_vars);
 
         nvars = n;
         weights.resize(nvars);

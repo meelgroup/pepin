@@ -694,7 +694,7 @@ bool PepinInt::add_clause(const vector<Lit>& cl) {
         //    where we calculate z = 2**(float-floor(float)) in C++, i.e. low precision
         mpf_init2(low_prec_num_points, 1000);
         mpf_set_d(low_prec_num_points, std::exp2(buck_size_log2-std::floor(buck_size_log2)));
-        mpf_mul_2exp(low_prec_num_points, low_prec_num_points, std::floor(buck_size_log2));
+        mpf_mul_2exp(low_prec_num_points, low_prec_num_points, std::floor(buck_size_log2)-num_fake_vars);
 
         //bucket_size/sampl_prob
         mpq_init(weigh_num_sols);
