@@ -82,12 +82,13 @@ public:
     constexpr bool operator >=  (const Lit& p) const {
         return x >= p.x;
     }
-    constexpr static Lit itol(int32_t data)
-    {
-        assert(data != 0);
-        return Lit(abs(data)-1, data < 0);
-    }
 };
+
+constexpr Lit itol(int32_t data)
+{
+    assert(data != 0);
+    return Lit(abs(data)-1, data < 0);
+}
 
 static const Lit lit_Undef(var_Undef, false);  // Useful special constants.
 

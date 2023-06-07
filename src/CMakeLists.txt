@@ -36,6 +36,10 @@ add_executable (pepin-bin
     pepin-main.cpp
 )
 
+add_executable (pepin-test-bin
+    test.cpp
+)
+
 target_link_libraries (pepin
     ${GMPXX_LIB}
     ${GMP_LIB}
@@ -43,6 +47,11 @@ target_link_libraries (pepin
 )
 
 target_link_libraries(pepin-bin
+    ${Boost_LIBRARIES}
+    pepin
+)
+
+target_link_libraries(pepin-test-bin
     ${Boost_LIBRARIES}
     pepin
 )
@@ -59,6 +68,10 @@ set_target_properties(pepin-bin PROPERTIES
     INSTALL_RPATH_USE_LINK_PATH TRUE
 )
 
+set_target_properties(pepin-test-bin PROPERTIES
+    OUTPUT_NAME test
+    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
+)
 
 pepin_add_public_header(
     pepin ${CMAKE_CURRENT_SOURCE_DIR}/pepin.h )
