@@ -447,7 +447,8 @@ void Bucket::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
     size++;
 }
 
-void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
+void PepinInt::add_uniq_samples(
+        const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
 {
     samples_called++;
     double bits_of_entropy = 0;
@@ -487,9 +488,14 @@ void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num
     uint32_t rand_pool_bits = 0;
     uint64_t at = 0;
 
+    uint32_t retries = 0;
     while (samples.size() < num) {
-        sol.resize(sol.size()+nvars*todo);
-        ws.resize(ws.size()+nvars*todo);
+        if (retries > 100) {
+            cout << "ERROR. This version of the algorithm can only deal with unique samples, and the precision requested would require more samples than there is volume. So we can't do that. Please lower your epsilon." << endl;
+            exit(-1);
+        }
+        sol.resize(sol.size()+nVars()*todo);
+        ws.resize(ws.size()+nVars()*todo);
         for(uint64_t i = 0; i < todo; i ++) {
             Sample s;
             size_t start_at = at;
@@ -546,11 +552,6 @@ void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num
         print_verb(2, "Generated " << todo << " extra non-unique samples");
         assert(sol.size() == ws.size());
         assert(sol.size() % nVars() == 0);
-        if (samples.size()*nVars() != sol.size()) {
-            cout << "ERROR. This version of the algorithm can only deal with unique samples, and the precision requested would require more samples than there is volume. So we can't do that. Please lower your epsilon." << endl;
-            exit(-1);
-        }
-        assert(samples.size()*nVars() == sol.size());
 
         //remove duplicates
         if (!samples.empty()) {
@@ -567,6 +568,7 @@ void PepinInt::add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num
         if (samples.size() < num) todo = (num - samples.size())*2;
         print_verb(2, "Now we have " << samples.size() << " unique samples, T:"
             << (cpuTime() - myTime));
+        retries++;
     }
 
     //add unique samples

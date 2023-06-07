@@ -45,6 +45,16 @@ using std::vector;
 using std::cout;
 using std::endl;
 
+
+#define release_assert(a) \
+    do { \
+        if (!(a)) {\
+            fprintf(stderr, "*** ASSERTION FAILURE in %s() [%s:%d]: %s\n", \
+            __FUNCTION__, __FILE__, __LINE__, #a); \
+            abort(); \
+        } \
+    } while (0)
+
 using PepinNS::Lit;
 namespace PepinIntNS {
 
@@ -262,15 +272,17 @@ struct PepinInt {
         fast_center_calc = _fast_center_calc;
     }
 
-    uint32_t new_vars(const uint32_t n) {
-        weights.resize(n);
-        nvars = n;
-        bucket.set_nvars(n);
-        seen.resize(n, false);
-        if (n % 4 != 0) {
-            cout << "ERROR: we currently cannot handle variable numbers not divisible by 4. Will fix soon." << endl;
-            exit(-1);
+    uint32_t new_vars(uint32_t n) {
+        release_assert(nvars == 0);
+        if ((n%4) != 0) {
+            num_fake_vars = 4-(n%4);
+            n += num_fake_vars;
         }
+
+        nvars = n;
+        weights.resize(nvars);
+        bucket.set_nvars(nvars);
+        seen.resize(nvars, false);
 
         return nvars;
     }
@@ -313,6 +325,7 @@ struct PepinInt {
     bool all_default_weights = true;
     vector<uint8_t> seen;
 
+    uint32_t num_fake_vars = 0; // needed to be able to have nvars %4 == 0
     uint32_t nvars = 0;
     uint32_t n_cls_declared = 0;
     double epsilon;

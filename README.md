@@ -27,7 +27,7 @@ make
 c [dnfs] Low-precision approx num points: 348672
 ```
 
-Notice that the cube `1 2 3` has 2**17=131072 points, and `1 -5` has 2**18=262144, so a total of 393216. But they overlap, `1 2 3 -5` is counted twice. So the exact number is: 327680. Hence, we over-approximated a bit here. The error is 1.0-348672/327680=-0.064, so about 6.4%. This is well below the advertised 15% error allowed (i.e. epsilon 0.15).
+Notice that the cube `1 2 3` has `2**17=131072` points, and `1 -5` has `2**18=262144`, so a total of 393216. But they overlap, `1 2 3 -5` is counted twice. So the exact number is: 327680. Hence, we over-approximated a bit here. The error is `1.0-348672/327680=-0.064`, so about 6.4%. This is well below the advertised 15% error allowed (i.e. epsilon 0.15).
 
 
 ## Current Limitations
@@ -40,7 +40,6 @@ The following will likely be lifted in 1-2 weeks:
 The last limitation means you MUST have the `p dnf VARS CLS` header correct in your DNF file or the tool will NOT work.
 
 ## Library Use
-
 
 The header file, `pepin.h` is made to be used as a library. Use as:
 ```
