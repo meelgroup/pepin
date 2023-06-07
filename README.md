@@ -41,6 +41,7 @@ You can install the library with `sudo make install`. Then, the installed header
 #include <pepin/pepin.h>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 using namespace PepinNS;
 
 int main() {
@@ -48,12 +49,11 @@ int main() {
   pepin.new_vars(20);
   pepin.set_n_cls(2);
 
-  typedef vector<Lit> CL;
+  typedef std::vector<Lit> CL;
   pepin.add_clause(CL{itol(1), itol(2), itol(3)});
   pepin.add_clause(CL{itol(1), itol(-5)});
-  auto weigh_num_sols = dnfs->get_low_prec_appx_weighted_sol();
-  std::cout << "Solution: " << std::scientific << std::setprecision(10)
-    << *weigh_num_sols << std::endl;
+  auto weigh_nsols = pepin.get_low_prec_appx_weighted_sol();
+  std::cout << "Solution: " << std::scientific << *weigh_nsols << "std::endl;
 
   return 0;
 }
