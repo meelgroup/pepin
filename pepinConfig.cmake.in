@@ -1,0 +1,19 @@
+# Config file for the @EXPORT_TYPE@ cryptominisat Package
+# It defines the following variables
+#  PEPIN_INCLUDE_DIRS - include directories for cryptominisat5
+#  PEPIN_LIBRARIES    - libraries to link against
+#  PEPIN_EXECUTABLE   - the cryptominisat executable
+
+# Compute paths
+get_filename_component(PEPIN_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(PEPIN_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+
+# Our library dependencies (contains definitions for IMPORTED targets)
+include("${PEPIN_CMAKE_DIR}/@PEPIN_TARGETS_FILENAME@")
+
+# These are IMPORTED targets created by @PEPIN_TARGETS_FILENAME@
+set(PEPIN_LIBRARIES pepin)
+set(PEPIN_STATIC_LIBRARIES pepin)
+set(PEPIN_VERSION_MAJOR @PROJECT_VERSION_MAJOR@)
+set(PEPIN_VERSION_MINOR @PROJECT_VERSION_MINOR@)
+set(PEPIN_EXECUTABLE pepin)

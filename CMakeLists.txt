@@ -49,6 +49,9 @@ if(POLICY CMP0104)
     cmake_policy(SET CMP0104 NEW)
 endif()
 
+include (GenerateExportHeader)
+include (GNUInstallDirs)
+
 project (pepin)
 
 # -----------------------------------------------------------------------------
@@ -338,7 +341,7 @@ if (GIT_EXECUTABLE)
 else()
   set(GIT_SHA "GIT-hash-notfound")
 endif()
-set(PEPIN_FULL_VERSION "1.0.1")
+set(PEPIN_FULL_VERSION "1.1.0")
 
 string(REPLACE "." ";" PEPIN_FULL_VERSION_LIST ${PEPIN_FULL_VERSION})
 SetVersionNumber("PROJECT" ${PEPIN_FULL_VERSION_LIST})
@@ -347,4 +350,96 @@ MESSAGE(STATUS "PROJECT_VERSION_MAJOR: ${PROJECT_VERSION_MAJOR}")
 MESSAGE(STATUS "PROJECT_VERSION_MINOR: ${PROJECT_VERSION_MINOR}")
 MESSAGE(STATUS "PROJECT_VERSION_PATCH: ${PROJECT_VERSION_PATCH}")
 
+
+#query definitions
+get_directory_property( DirDefs DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS )
+set(COMPILE_DEFINES)
+foreach( d ${DirDefs} )
+    # message( STATUS "Found Define: " ${d} )
+    set(COMPILE_DEFINES "${COMPILE_DEFINES} -D${d}")
+endforeach()
+message(STATUS "All defines at startup: ${COMPILE_DEFINES}")
+
+# set .so/.a directories
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+
+# headers
+macro(pepin_add_public_header LIBTARGET HEADER)
+    get_target_property(EXISTING_PUBLIC_HEADERS ${LIBTARGET} PUBLIC_HEADER)
+    if(EXISTING_PUBLIC_HEADERS)
+        list(APPEND EXISTING_PUBLIC_HEADERS "${HEADER}")
+    else()
+        # Do not append to empty list
+        set(EXISTING_PUBLIC_HEADERS "${HEADER}")
+    endif()
+    set_target_properties(
+        ${LIBTARGET}
+        PROPERTIES
+        PUBLIC_HEADER "${EXISTING_PUBLIC_HEADERS}"
+     )
+endmacro()
+
+set(PEPIN_EXPORT_NAME "pepinTargets")
+
 add_subdirectory(src)
+
+# -----------------------------------------------------------------------------
+# Add uninstall target for makefiles
+# -----------------------------------------------------------------------------
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY
+)
+
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+)
+
+# -----------------------------------------------------------------------------
+# Export our targets so that other CMake based projects can interface with
+# the build of pepin in the build-tree
+# -----------------------------------------------------------------------------
+set(PEPIN_TARGETS_FILENAME "pepinTargets.cmake")
+set(PEPIN_CONFIG_FILENAME "pepinConfig.cmake")
+
+# Export targets
+set(MY_TARGETS pepin)
+export(
+    TARGETS ${MY_TARGETS}
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PEPIN_TARGETS_FILENAME}"
+)
+
+# Create pepinConfig file
+set(EXPORT_TYPE "Build-tree")
+set(CONF_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/include")
+configure_file(pepinConfig.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PEPIN_CONFIG_FILENAME}" @ONLY
+)
+
+# Export this package to the CMake user package registry
+# Now the user can just use find_package(cryptominisat5) on their system
+export(PACKAGE pepin)
+
+set(DEF_INSTALL_CMAKE_DIR lib/cmake/pepin)
+set(PEPIN_INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH
+    "Installation directory for pepin CMake files")
+
+# Create pepinConfig file
+set(EXPORT_TYPE "installed")
+set(CONF_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include")
+configure_file(pepinConfig.cmake.in
+   "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${PEPIN_CONFIG_FILENAME}" @ONLY
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${PEPIN_CONFIG_FILENAME}"
+    DESTINATION "${PEPIN_INSTALL_CMAKE_DIR}"
+)
+
+# Install the export set for use with the install-tree
+install(
+    EXPORT ${PEPIN_EXPORT_NAME}
+    DESTINATION "${PEPIN_INSTALL_CMAKE_DIR}"
+)
