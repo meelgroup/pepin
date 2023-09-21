@@ -1,8 +1,8 @@
 # Pepin
 
-Pepin is a DNF streaming counting tool that gives the number of approximate points in a volume given a set of n-dimensional boxes that may intersect. Think of it as a tool that takes a set of cubes in space and approximates the total volume of all cubes. The related research paper, published at IJCAI 2023 is [Engineering an Efficient Approximate DNF-Counter]([url](https://www.ijcai.org/proceedings/2023/226)).
+Pepin is a DNF streaming counting tool that gives the number of approximate points in a volume given a set of n-dimensional boxes that may intersect. Think of it as a tool that takes a set of cubes in space and approximates the total volume of all cubes. The related research paper, published at IJCAI 2023 is [Engineering an Efficient Approximate DNF-Counter](https://www.ijcai.org/proceedings/2023/226).
 
-It takes in a set of cubes from a DNF file, such as this, that has 10 dimensions, and 2 cubes:
+The tool takes in a set of cubes from a DNF file, such as this, that has 10 dimensions, and 2 cubes:
 
 ```
 $ cat myfile.dnf
