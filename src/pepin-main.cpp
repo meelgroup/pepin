@@ -51,7 +51,9 @@ using std::endl;
 using std::string;
 
 po::options_description dnfs_options = po::options_description("Pepin options");
+po::options_description hidden_options = po::options_description("Hidden options");
 po::options_description help_options;
+po::options_description all_options;
 po::variables_map vm;
 po::positional_options_description p;
 double startTime;
@@ -70,19 +72,27 @@ int fast_center_calc = 1;
 
 void add_dnfs_options()
 {
+
+    std::ostringstream delta_val;
+    delta_val << std::setprecision(4) << delta;
+
     dnfs_options.add_options()
     ("help,h", "Prints help")
     ("version", "Print version info")
-    ("input", po::value<string>(), "file to read")
+    ("epsilon,e", po::value(&epsilon)->default_value(epsilon), "epsilon")
+    ("delta,d", po::value(&delta)->default_value(delta, delta_val.str()), "delta")
     ("verb,v", po::value(&verb)->default_value(verb), "verbosity")
     ("seed,s", po::value(&seed)->default_value(seed), "Seed")
-    ("epsilon,e", po::value(&epsilon)->default_value(epsilon), "epsilon")
     ("eager", po::value(&force_eager)->default_value(force_eager), "Force eager")
-    ("delta,d", po::value(&delta)->default_value(delta), "delta")
     ("fastcenter", po::value(&fast_center_calc)->default_value(fast_center_calc), "fast center calculation")
     ;
 
+    hidden_options.add_options()
+    ("input", po::value<string>(), "file to read");
+
     help_options.add(dnfs_options);
+    all_options.add(dnfs_options);
+    all_options.add(hidden_options);
 }
 
 void add_supported_options(int argc, char** argv)
@@ -91,7 +101,7 @@ void add_supported_options(int argc, char** argv)
     p.add("input", 1);
 
     try {
-        po::store(po::command_line_parser(argc, argv).options(help_options).positional(p).run(), vm);
+        po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), vm);
         if (vm.count("help"))
         {
             cout
