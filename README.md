@@ -1,3 +1,4 @@
+[![build](https://github.com/meelgroup/pepin/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/meelgroup/pepin/actions/workflows/cmake-single-platform.yml)
 # Pepin
 
 Pepin is a DNF streaming counting tool that gives the number of approximate points in a volume given a set of n-dimensional boxes that may intersect. Think of it as a tool that takes a set of cubes in space and approximates the total volume of all cubes. The related research paper, published at IJCAI 2023 is [Engineering an Efficient Approximate DNF-Counter](https://www.ijcai.org/proceedings/2023/226).
