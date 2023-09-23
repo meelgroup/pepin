@@ -4,7 +4,7 @@ Pepin is a DNF streaming counting tool that gives the number of approximate poin
 
 The tool takes in a set of cubes from a DNF file, such as this, that has 10 dimensions, and 2 cubes:
 
-```
+```bash
 $ cat myfile.dnf
 p dnf 20 2
 1 2 3 0
@@ -15,13 +15,18 @@ And outputs a probabilistically approximate count.
 
 You can build&run it with:
 
-```
+```bash
 sudo apt-get install libgmp-dev zlib1g-dev libboost-program-options-dev cmake build-essential git
 git clone https://github.com/meelgroup/pepin
 mkdir build
 cd build
 cmake ..
 make
+```
+
+Then you can run it like:
+
+```bash
 ./pepin --epsilon 0.15 --delta 0.1 myfile.dnf
 [...]
 c [dnfs] Low-precision approx num points: 348672
@@ -37,7 +42,7 @@ Currently, the algorithm can only return estimate after the exact number of clau
 ## Library Use
 
 You can install the library with `sudo make install`. Then, the installed header file `pepin/pepin.h` can be used as a library:
-```
+```cpp
 #include <pepin/pepin.h>
 #include <iostream>
 #include <iomanip>
@@ -65,7 +70,7 @@ The library is clean -- it cleans up after itself, you can have more than one in
 
 You can fuzz by building DNFKLM from [here](https://gitlab.com/Shrotri/DNF_Counting/), putting the resulting `DNFKLM` binary into `build/`, and then:
 
-```
+```bash
 cd build
 ln -s ../scripts/* .
 ./build_norm.sh
