@@ -314,95 +314,22 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
 void PepinInt::approx_binomial(
     mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out)
 {
-    // n_local must be not too large, and sampl_prob must not be too small
-    if (mpz_cmp_ui(n_local, 1ULL<<60) <= 0 && mpq_cmp(sampl_prob, constant_very_small_center) > 0) {
-        // Precise calculation
-        assert(mpz_fits_ulong_p(n_local) && "We must fit, we checked it's < 2**60");
-        uint64_t n_low_prec = mpz_get_ui(n_local);
+    
+    mpq_set_z(center_for_a, n_local);
+    mpq_mul(center_for_a, center_for_a, sampl_prob);
+    const double center_low_prec = mpq_get_d(center_for_a);
+    assert(center_low_prec != nan(""));
+    assert(!isinf(center_low_prec));
+    //assert(center_low_prec != 0.0);
 
-        //TODO
-        //assert(mpq_fits_d(sampl_prob));
-        double sampl_prob_center_low_prec = mpq_get_d(sampl_prob);
-        assert(sampl_prob_center_low_prec != 0.0);
-        assert(sampl_prob_center_low_prec != nan(""));
+    std::poisson_distribution<> poiss(center_low_prec);
+    uint64_t ni = poiss(mtrand);
+    mpz_set_ui(samples_needed_out, ni);
 
-        std::binomial_distribution<uint64_t> distribution(n_low_prec, sampl_prob_center_low_prec);
-        uint64_t ni = distribution(mtrand);
-        mpz_set_ui(samples_needed_out, ni);
-
-        if (mpz_cmp_ui(samples_needed_out, 1) >= 0) {
-            print_verb(2, "Did binomial distribution. n: " << n_low_prec
-                    << " sampl_prob: " << sampl_prob_center_low_prec);
-        }
-        return;
-    } else {
-        //Apporximating
-        print_verb(2,  "Approximating with another distribution, n is too large");
-
-        //If n and sampl_prob is the same as last time, we can use old values
-        //This is PURELY for speed (no change to values)
-        if (sampl_prob_expbit == sampl_prob_expbit_before_approx &&
-            mpz_cmp(last_n_appx, n_local) == 0 &&
-            fast_center_calc
-        ) {
-            //nothing to do, keep using old values: center_for_a, and var
-        } else {
-
-            //center = n*sampl_prob
-            mpq_set_z(center_for_a, n_local);
-            mpq_mul(center_for_a, center_for_a, sampl_prob);
-
-            //var = center*(Decimal(1.0)-sampl_prob)
-            sampl_prob_expbit_before_approx = sampl_prob_expbit;
-            mpz_set(last_n_appx, n_local);
-        }
-
-        if (mpq_cmp(center_for_a, constant_very_small_center) >= 0) {
-            //Use poisson, center is not very small (>= 2**-32)
-            //Also, it's smaller than thresh
-            assert(mpq_cmp_ui(center_for_a, thresh, 1) < 0);
-
-            const double center_low_prec = mpq_get_d(center_for_a);
-            assert(center_low_prec != nan(""));
-            assert(!isinf(center_low_prec));
-            assert(center_low_prec != 0.0);
-
-            std::poisson_distribution<> poiss(center_low_prec);
-            uint64_t ni = poiss(mtrand);
-            mpz_set_ui(samples_needed_out, ni);
-
-            print_verb(2, "Used poission distribution");
-            print_verb(2, "Mu (i.e. center): " << center_low_prec);
-            return;
-        } else {
-            mpq_t center_for_a_2;
-            mpq_init(center_for_a_2);
-            mpq_set(center_for_a_2, center_for_a);
-
-            while(mpq_cmp_ui(center_for_a_2, 1, 1UL<<31) < 0) {
-                std::uniform_int_distribution<uint32_t> distr;
-                uint32_t x = distr(mtrand);
-                if (x == 0) {
-                    mpq_mul_2exp(center_for_a_2, center_for_a_2, 32);
-                } else {
-                    mpz_set_ui(samples_needed_out, 0);
-                    mpq_clear(center_for_a_2);
-                    return;
-                }
-            }
-            const double center_low_prec = mpq_get_d(center_for_a_2);
-            mpq_clear(center_for_a_2);
-            assert(center_low_prec < 1.0);
-            assert(center_low_prec > 0.0);
-            std::uniform_real_distribution<double> distr(0.0, 1.0);
-            if (distr(mtrand) < center_low_prec) {
-                mpz_set_ui(samples_needed_out, 1);
-            } else {
-                mpz_set_ui(samples_needed_out, 0);
-            }
-            return;
-        }
-    }
+    print_verb(2, "Used poission distribution");
+    print_verb(2, "Mu (i.e. center): " << center_low_prec);
+    return;
+    
 }
 
 struct SampleSorter {
