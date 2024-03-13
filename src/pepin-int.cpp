@@ -320,7 +320,6 @@ void PepinInt::approx_binomial(
     const double center_low_prec = mpq_get_d(center_for_a);
     assert(center_low_prec != nan(""));
     assert(!isinf(center_low_prec));
-    //assert(center_low_prec != 0.0);
 
     std::poisson_distribution<> poiss(center_low_prec);
     uint64_t ni = poiss(mtrand);
