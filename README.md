@@ -29,6 +29,24 @@ c [dnfs] Low-precision approx num points: 348672
 
 Notice that the cube `1 2 3` has `2**17=131072` points, and `1 -5` has `2**18=262144`, so a total of 393216. But they overlap, `1 2 3 -5` is counted twice. So the exact number is: 327680. Hence, we over-approximated a bit here. The error is `1.0-348672/327680=-0.064`, so about 6.4%. This is well below the advertised 15% error allowed (i.e. epsilon 0.15).
 
+## Weighted Counting
+
+Pepin is a streaming, weighted approximate model. Because it works with data
+streams, you must declare the weights of all literals before you start the
+stream. Hence, the weights need to be declared at the top of the DNF file. Here
+is an example:
+
+```
+$ cat myfile-weighted.dnf
+p dnf 20 2
+w 1 2/3
+w 2 3/4
+1 2 3 0
+1 -5 0
+```
+
+The weights of variables 1 and 2 are now declared to be 2/3 and 3/4,
+respectively. The rest of the variables will have weight 1/2 by default.
 
 ## Current Limitations
 
