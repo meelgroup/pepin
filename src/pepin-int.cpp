@@ -314,9 +314,24 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
 void PepinInt::poisson(
     mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out)
 {
-    
-    mpq_set_z(center_for_a, n_local);
-    mpq_mul(center_for_a, center_for_a, sampl_prob);
+    if (sampl_prob_expbit == sampl_prob_expbit_before_approx &&
+            mpz_cmp(last_n_appx, n_local) == 0 &&
+            fast_center_calc
+        ) {
+            //nothing to do, keep using old values: center_for_a, and var
+        } else {
+
+            //center = n*sampl_prob
+            mpq_set_z(center_for_a, n_local);
+            mpq_mul(center_for_a, center_for_a, sampl_prob);
+
+            //var = center*(Decimal(1.0)-sampl_prob)
+            sampl_prob_expbit_before_approx = sampl_prob_expbit;
+            mpz_set(last_n_appx, n_local);
+        }
+
+    // mpq_set_z(center_for_a, n_local);
+    // mpq_mul(center_for_a, center_for_a, sampl_prob);
     const double center_low_prec = mpq_get_d(center_for_a);
     assert(center_low_prec != nan(""));
     assert(!isinf(center_low_prec));
