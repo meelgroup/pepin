@@ -345,7 +345,7 @@ struct PepinInt {
     int fast_center_calc = true;
     uint64_t added_samples_during_processing = 0;
     std::mt19937_64 mtrand;
-    
+
     uint64_t lazy_samples_called = 0;
     uint64_t samples_called = 0;
 
