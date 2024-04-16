@@ -387,18 +387,6 @@ void PepinInt::add_samples(
         const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
 {
     samples_called++;
-    double bits_of_entropy = 0;
-    if (all_default_weights) {
-        bits_of_entropy = ((double)nvars-(double)cl.size());
-    } else {
-        for(const auto& l: cl) seen[l.var()] = true;
-        for(uint32_t i = 0; i < nVars(); i++) {
-            if (seen[i]) continue;
-            bits_of_entropy += weights[i].bits_of_entropy;
-        }
-        for(const auto& l: cl) seen[l.var()] = false;
-    }
-
     lazy_samples_called += 1;
 
     added_samples_during_processing += num;
