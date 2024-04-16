@@ -339,7 +339,6 @@ void PepinInt::poisson(
     print_verb(2, "Used poission distribution");
     print_verb(2, "Mu (i.e. center): " << center_low_prec);
     return;
-    
 }
 
 struct SampleSorter {
@@ -407,7 +406,6 @@ void PepinInt::add_samples(
         bucket.add_lazy(cl, dnf_cl_num);
     }
     return;
-
 }
 
 void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
