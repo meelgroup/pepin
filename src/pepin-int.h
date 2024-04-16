@@ -27,7 +27,6 @@
 #include <vector>
 #include <cstdint>
 #include <cassert>
-#include <algorithm>
 #include <limits>
 #include <random>
 #include <iostream>
@@ -36,8 +35,6 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include "pepin.h"
-
-#include "MersenneTwister.h"
 
 using std::vector;
 using std::cout;

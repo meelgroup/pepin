@@ -31,6 +31,7 @@
 #include <math.h>
 #include <random>
 #include <cmath>
+#include <algorithm>
 #include <string.h>
 
 using std::cout;
