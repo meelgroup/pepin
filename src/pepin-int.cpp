@@ -291,7 +291,7 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
 
     ///recreate sampl_prob
     mpq_div_2exp(sampl_prob, constant_one, sampl_prob_expbit);
-    approx_binomial(n, sampl_prob, samples_needed);
+    poisson(n, sampl_prob, samples_needed);
 
     while(true)  {
         mpz_add_ui(ni_plus_bucketsz, samples_needed, bucket.get_size());
@@ -302,7 +302,7 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
             break;
         }
 
-        approx_binomial(samples_needed, constant_half, samples_needed);
+        poisson(samples_needed, constant_half, samples_needed);
         sampl_prob_expbit++;
         print_verb(2, "Sampl. prob is now: 2**-" << sampl_prob_expbit
         << " nvars-expprob = " << nvars-sampl_prob_expbit
@@ -311,7 +311,7 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
     }
 }
 
-void PepinInt::approx_binomial(
+void PepinInt::poisson(
     mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out)
 {
     
@@ -373,7 +373,7 @@ void Bucket::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
     size++;
 }
 
-void PepinInt::add_uniq_samples(
+void PepinInt::add_samples(
         const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
 {
     samples_called++;
@@ -388,125 +388,15 @@ void PepinInt::add_uniq_samples(
         }
         for(const auto& l: cl) seen[l.var()] = false;
     }
-    //Even accounting for birthday paradox, there are still 30 bits left
-    bool lazy = bits_of_entropy/2.0-std::log2(num+1) > 30;
 
-    if (force_eager) lazy = false;
-    print_verb(3, "Lazy: " << lazy);
-    lazy_samples_called += lazy;
+    lazy_samples_called += 1;
 
-    if (lazy) {
-        added_samples_during_processing += num;
-        for(uint64_t i = 0; i < num; i ++) {
-            bucket.add_lazy(cl, dnf_cl_num);
-        }
-        return;
-    }
-
-    //We'll add the samples into these, samples[] will be the pointer
-    vector<value> sol;
-    vector<WeightPrec> ws;
-    vector<Sample> samples;
-
-    double myTime = cpuTime();
-    uint64_t todo = num + 1;
-    uint64_t rand_pool;
-    uint32_t rand_pool_bits = 0;
-    uint64_t at = 0;
-
-    uint32_t retries = 0;
-    while (samples.size() < num) {
-        if (retries > 100) {
-            cout << "ERROR. This version of the algorithm can only deal with unique samples, and the precision requested would require more samples than there is volume. So we can't do that. Please lower your epsilon." << endl;
-            exit(-1);
-        }
-        sol.resize(sol.size()+nVars()*todo);
-        ws.resize(ws.size()+nVars()*todo);
-        for(uint64_t i = 0; i < todo; i ++) {
-            Sample s;
-            size_t start_at = at;
-
-            //Generate completely random values, then fix later to
-            //set the clause's values (that are very few)
-            //  --> faster this way, less branching here
-            for(uint32_t var = 0; var < nvars; var ++) {
-                //Set up the sample data
-                if (var == 0) {
-                    s.sol_at = at/nvars;
-                    s.ws_at = at/nvars;
-                    s.gen_point = samples.size();
-                }
-
-                WeightPrec w;
-                if (weights[var].divisor == 2 &&
-                    weights[var].dividend == 1)
-                {
-                    //use fast bit system if possible
-                    if (rand_pool_bits == 0) {
-                        rand_pool = mtrand();
-                        rand_pool_bits = 64;
-                    }
-                    w = rand_pool & 1;
-                    rand_pool_bits--;
-                    rand_pool >>= 1;
-                } else {
-                    std::uniform_int_distribution<int> uid(0,weights[var].divisor-1);
-                    w = uid(mtrand);
-
-                }
-                sol[at] = w < weights[var].dividend;
-                ws[at] = w;
-                at++;
-            }
-
-            //Fix the clause values now
-            for(const Lit lit: cl) {
-                uint32_t var = lit.var();
-                size_t my_at = start_at + var;
-                sol[my_at] = !lit.sign();
-                if (sol[my_at]) {
-                    std::uniform_int_distribution<int> uid(0,weights[var].dividend-1);
-                    ws[my_at] = uid(mtrand);
-                } else {
-                    std::uniform_int_distribution<int> uid(0,weights[var].divisor-weights[var].dividend-1);
-                    ws[my_at] = weights[var].dividend+uid(mtrand);
-                }
-            }
-
-            samples.push_back(s);
-        }
-        print_verb(2, "Generated " << todo << " extra non-unique samples");
-        assert(sol.size() == ws.size());
-        assert(sol.size() % nVars() == 0);
-
-        //remove duplicates
-        if (!samples.empty()) {
-            std::sort(samples.begin(), samples.end(), SampleSorter(nvars, sol, ws));
-            uint64_t j = 0;
-            for(uint64_t i = 1; i < samples.size(); i++) {
-                if (!samples[i].equals_sol_w(samples[j], nvars, sol, ws)) {
-                    j++;
-                    samples[j] = samples[i];
-                }
-            }
-            samples.resize(j+1);
-        }
-        if (samples.size() < num) todo = (num - samples.size())*2;
-        print_verb(2, "Now we have " << samples.size() << " unique samples, T:"
-            << (cpuTime() - myTime));
-        retries++;
-    }
-
-    //add unique samples
-    assert(samples.size() >= num);
-    if (!lazy) {
-        std::sort(samples.begin(), samples.end(), SampleSorterGenpoint());
-    }
+    added_samples_during_processing += num;
     for(uint64_t i = 0; i < num; i ++) {
-        bucket.add(&sol[samples[i].sol_at], dnf_cl_num);
+        bucket.add_lazy(cl, dnf_cl_num);
     }
+    return;
 
-    print_verb(2, "Added " << num << " unique samples, new bucket size: " << bucket.get_size());
 }
 
 void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
@@ -577,7 +467,7 @@ bool PepinInt::add_clause(const vector<Lit>& cl) {
         exit(-1);
     }
     uint64_t num_samples = mpz_get_ui(ni);
-    if (num_samples > 0) add_uniq_samples(cl_tmp, num_cl_added, num_samples);
+    if (num_samples > 0) add_samples(cl_tmp, num_cl_added, num_samples);
 
     num_cl_added++;
     if (verbosity >= 2) {
