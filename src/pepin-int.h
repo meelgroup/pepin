@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <immintrin.h>
 #include <vector>
 #include <cstdint>
 #include <cassert>
@@ -35,7 +34,6 @@
 #include <gmp.h>
 #include <string.h>
 #include <unistd.h>
-#include <malloc.h>
 #include <sys/mman.h>
 #include "pepin.h"
 
@@ -149,7 +147,8 @@ public:
 
         //we align it to pagesize
         const auto pagesize = getpagesize();
-        uint8_t* data2 = (uint8_t*)memalign(pagesize, curr_size+num/4);
+        uint8_t* data2;
+        posix_memalign((void**)&data2, pagesize, curr_size+num/4);
         if (data) memcpy(data2, data, curr_size);
         memset(data2+curr_size, 0xff, num/4);
         curr_size+=num/4;
@@ -291,8 +290,8 @@ struct PepinInt {
     bool add_clause(const vector<Lit>& cl);
     void magic(const vector<Lit>& cl, mpz_t ni);
     void get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out);
-    void approx_binomial(mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out);
-    void add_uniq_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num_samples);
+    void poisson(mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out);
+    void add_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num_samples);
 
     void check_ready() const;
     const mpf_t* get_low_prec_appx_num_points() const;
@@ -345,7 +344,7 @@ struct PepinInt {
     int fast_center_calc = true;
     uint64_t added_samples_during_processing = 0;
     std::mt19937_64 mtrand;
-
+    
     uint64_t lazy_samples_called = 0;
     uint64_t samples_called = 0;
 
