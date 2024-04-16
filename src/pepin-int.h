@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <immintrin.h>
 #include <vector>
 #include <cstdint>
 #include <cassert>
@@ -35,7 +34,6 @@
 #include <gmp.h>
 #include <string.h>
 #include <unistd.h>
-#include <malloc.h>
 #include <sys/mman.h>
 #include "pepin.h"
 
@@ -149,7 +147,8 @@ public:
 
         //we align it to pagesize
         const auto pagesize = getpagesize();
-        uint8_t* data2 = (uint8_t*)memalign(pagesize, curr_size+num/4);
+        uint8_t* data2;
+        posix_memalign((void**)&data2, pagesize, curr_size+num/4);
         if (data) memcpy(data2, data, curr_size);
         memset(data2+curr_size, 0xff, num/4);
         curr_size+=num/4;
