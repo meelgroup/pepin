@@ -34,6 +34,7 @@ add_library (pepin
 )
 target_link_libraries (pepin
   LINK_PUBLIC ${GMPXX_LIBRARY}
+  LINK_PUBLIC ${GMP_LIBRARY}
 )
 
 add_executable (pepin-bin
@@ -44,13 +45,17 @@ add_executable (pepin-test-bin
     test.cpp
 )
 
+set(pepin_exec_link_libs
+    ${GMPXX_LIBRARY}
+    ${GMP_LIBRARY}
+)
 IF (ZLIB_FOUND)
     SET(pepin_exec_link_libs ${pepin_exec_link_libs} ${ZLIB_LIBRARY})
 ENDIF()
 
 target_link_libraries(pepin-bin
-  ${pepin_exec_link_libs}
   pepin
+  ${pepin_exec_link_libs}
 )
 target_link_libraries(pepin-test-bin pepin
 )
