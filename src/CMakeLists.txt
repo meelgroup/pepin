@@ -22,6 +22,8 @@ include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${GMP_INCLUDE_DIRS})
+include_directories(${GMPXX_INCLUDE_DIR})
+include_directories(${MPFR_INCLUDE_DIR})
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/GitSHA1.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp" @ONLY)
 
@@ -29,6 +31,9 @@ add_library (pepin
     pepin-int.cpp
     pepin.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp
+)
+target_link_libraries (pepin
+  LINK_PUBLIC ${GMPXX_LIBRARY}
 )
 
 add_executable (pepin-bin
@@ -43,16 +48,12 @@ IF (ZLIB_FOUND)
     SET(pepin_exec_link_libs ${pepin_exec_link_libs} ${ZLIB_LIBRARY})
 ENDIF()
 
-target_link_libraries (pepin
-    ${GMPXX_LIB}
-    ${GMP_LIB}
-)
-
 target_link_libraries(pepin-bin
-    pepin
-    ${pepin_exec_link_libs}
+  ${pepin_exec_link_libs}
+  pepin
 )
-target_link_libraries(pepin-test-bin pepin)
+target_link_libraries(pepin-test-bin pepin
+)
 
 set_target_properties(pepin PROPERTIES
     PUBLIC_HEADER "${pepin_public_headers}"
@@ -74,10 +75,10 @@ else()
         INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
 
-set_target_properties(pepin-test-bin PROPERTIES
-    OUTPUT_NAME test
-    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
-)
+# set_target_properties(pepin-test-bin PROPERTIES
+#     OUTPUT_NAME test
+#     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
+# )
 
 pepin_add_public_header(
     pepin ${CMAKE_CURRENT_SOURCE_DIR}/pepin.h )

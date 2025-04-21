@@ -312,8 +312,8 @@ if (NOT NOZLIB AND NOT (STATICCOMPILE AND WIN32))
     ENDIF (ZLIB_FOUND)
 endif()
 
-find_library(GMP_LIB gmp)
-find_library(GMPXX_LIB gmpxx)
+find_package(GMP REQUIRED)
+find_package(GMPXX REQUIRED)
 
 # -----------------------------------------------------------------------------
 # Add GIT version

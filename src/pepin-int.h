@@ -30,7 +30,7 @@
 #include <limits>
 #include <random>
 #include <iostream>
-#include <gmp.h>
+#include <gmpxx.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>

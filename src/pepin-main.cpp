@@ -32,6 +32,8 @@
 #include "time_mem.h"
 #include "pepin.h"
 #include "dimacsparser-dnf.h"
+#include <gmpxx.h>
+#include <mpfr.h>
 
 // To allow breaking on division by zero etc
 #if defined(__GNUC__) && defined(__linux__)

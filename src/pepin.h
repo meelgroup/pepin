@@ -28,7 +28,7 @@
 #include <cassert>
 #include <vector>
 #include <ostream>
-#include <gmp.h>
+#include <gmpxx.h>
 
 namespace PepinNS {
 struct PepinPrivate;
