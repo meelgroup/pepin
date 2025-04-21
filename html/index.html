@@ -86,11 +86,11 @@
 <body>
     <div class="container">
         <h1>Pepin DNF Approximate Model Counter Solver in Your Browser</h1>
-        <div>Copy your CNF formula in the input box below and click "Run pepin.js" to run the counter in your browser. The output will be displayed below the input box.  Format description is available <a href="https://jix.github.io/varisat/manual/0.2.0/formats/dimacs.html">here</a></div>
+        <div>Copy your DNF formula in the input box below and click "Run pepin.js" to run the counter in your browser. The output will be displayed below the input box.  Format description is available <a href="https://jix.github.io/varisat/manual/0.2.0/formats/dimacs.html">here</a></div>
 
         <div>
-            <label for="input-content">CNF:</label>
-            <textarea id="input-content">p cnf 3 2
+            <label for="input-content">DNF:</label>
+            <textarea id="input-content">p dnf 3 2
 1 2 0
 -3 -1 -2 0
 </textarea>
@@ -160,8 +160,8 @@
                     else if (e.data.type === 'run') {
                         try {
                             console.log('Running with args:', e.data.args);
-                            Module.FS.writeFile('/input.cnf', e.data.input);
-                            Module.callMain(['/input.cnf']);
+                            Module.FS.writeFile('/input.dnf', e.data.input);
+                            Module.callMain(['/input.dnf']);
                             postMessage({ type: 'done' });
                         } catch (e) {
                             postMessage({ type: 'error', content: e.toString() });
