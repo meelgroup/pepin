@@ -21,7 +21,6 @@
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GMP_INCLUDE_DIRS})
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/GitSHA1.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp" @ONLY)
@@ -40,21 +39,20 @@ add_executable (pepin-test-bin
     test.cpp
 )
 
+IF (ZLIB_FOUND)
+    SET(pepin_exec_link_libs ${pepin_exec_link_libs} ${ZLIB_LIBRARY})
+ENDIF()
+
 target_link_libraries (pepin
     ${GMPXX_LIB}
     ${GMP_LIB}
-    ${ZLIB_LIBRARY}
 )
 
 target_link_libraries(pepin-bin
-    ${Boost_LIBRARIES}
     pepin
+    ${pepin_exec_link_libs}
 )
-
-target_link_libraries(pepin-test-bin
-    ${Boost_LIBRARIES}
-    pepin
-)
+target_link_libraries(pepin-test-bin pepin)
 
 set_target_properties(pepin PROPERTIES
     PUBLIC_HEADER "${pepin_public_headers}"
@@ -62,11 +60,19 @@ set_target_properties(pepin PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
 )
 
-set_target_properties(pepin-bin PROPERTIES
-    OUTPUT_NAME pepin
-    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
-    INSTALL_RPATH_USE_LINK_PATH TRUE
-)
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    set_target_properties(pepin-bin PROPERTIES
+        OUTPUT_NAME pepin
+        RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+        LINK_FLAGS "-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS='[\"callMain\", \"ccall\", \"cwrap\", \"FS\", \"print\"]' -s FORCE_FILESYSTEM=1"
+    )
+else()
+    set_target_properties(pepin-bin PROPERTIES
+        OUTPUT_NAME pepin
+        RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
+        INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
 
 set_target_properties(pepin-test-bin PROPERTIES
     OUTPUT_NAME test
@@ -111,4 +117,3 @@ install(TARGETS pepin-bin
     EXPORT ${PEPIN_EXPORT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-

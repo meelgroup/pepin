@@ -130,7 +130,7 @@ struct Pepin {
             const uint32_t divisor);
 
     void set_n_cls(uint32_t n_cls);
-    static const char* get_version_info();
+    static const char* get_version_sha1();
     static const char* get_compilation_env();
     const mpf_t* get_low_prec_appx_num_points() const;
     const mpf_t* get_low_prec_appx_weighted_sol() const;

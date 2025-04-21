@@ -217,7 +217,7 @@ bool DimacsParser<C, S>::parse_header(C& in)
     std::string str;
     in.parseString(str);
     if (str == "cnf") {
-        cout << "WARN: header says it's a CNF not a DNF!" << endl;
+        cout << "c WARNING: header says it's a CNF not a DNF!" << endl;
         //exit(-1);
     }
     if (str == "dnf" || str == "cnf") {

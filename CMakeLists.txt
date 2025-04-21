@@ -18,11 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-cmake_minimum_required (VERSION 3.10 FATAL_ERROR)
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_CXX_STANDARD 17)
-
-enable_language( CXX )
+cmake_minimum_required (VERSION 3.12 FATAL_ERROR)
 
 message(STATUS "LIB directory is '${CMAKE_INSTALL_LIBDIR}'")
 message(STATUS "BIN directory is '${CMAKE_INSTALL_BINDIR}'")
@@ -49,10 +45,15 @@ if(POLICY CMP0104)
     cmake_policy(SET CMP0104 NEW)
 endif()
 
-include (GenerateExportHeader)
-include (GNUInstallDirs)
-
 project (pepin)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+enable_language( CXX )
+enable_language( C )
+include (GNUInstallDirs)
+include (GenerateExportHeader)
 
 # -----------------------------------------------------------------------------
 # Make RelWithDebInfo the default build type if otherwise not set
@@ -76,7 +77,6 @@ SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 option(BUILD_SHARED_LIBS "Build the shared library" ON)
 option(STATICCOMPILE "Compile to static executable" OFF)
 if (STATICCOMPILE)
-    set(Boost_USE_STATIC_LIBS ON)
     set(BUILD_SHARED_LIBS OFF)
 endif()
 
@@ -129,7 +129,6 @@ if ((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR (${CMAKE_SYSTEM_NAME} MATCHES "Dar
             set(${VAR_TO_MODIFY} "${replacement}" CACHE STRING "Default flags for ${build_config} configuration" FORCE)
         endforeach()
     else()
-        add_definitions(-DBOOST_TEST_DYN_LINK)
         MESSAGE(STATUS "Compiling for dynamic library use")
     endif()
 endif()
@@ -268,7 +267,6 @@ if (NOT WIN32)
     if(NOT ENABLE_TESTING AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND NOT COVERAGE)
         #dd_cxx_flag_if_supported("-fvisibility=hidden")
     endif()
-    add_compile_options("-fPIC")
 
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         #add_cxx_flag_if_supported("-flto")
@@ -316,10 +314,6 @@ endif()
 
 find_library(GMP_LIB gmp)
 find_library(GMPXX_LIB gmpxx)
-find_package(ZLIB REQUIRED)
-
-set(boost_components ${boost_components} program_options serialization)
-find_package( Boost 1.46 COMPONENTS ${boost_components} REQUIRED)
 
 # -----------------------------------------------------------------------------
 # Add GIT version

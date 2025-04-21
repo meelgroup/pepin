@@ -24,17 +24,10 @@
  THE SOFTWARE.
  */
 
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
 #include <iostream>
 #include <iomanip>
-#include <vector>
-#include <atomic>
-#include <fstream>
-#include <sstream>
 #include <string>
-#include <signal.h>
+#include "argparse.hpp"
 
 #include "time_mem.h"
 #include "pepin.h"
@@ -50,12 +43,6 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-po::options_description dnfs_options = po::options_description("Pepin options");
-po::options_description hidden_options = po::options_description("Hidden options");
-po::options_description help_options;
-po::options_description all_options;
-po::variables_map vm;
-po::positional_options_description p;
 double startTime;
 int verb = 1;
 int seed = 1;
@@ -65,136 +52,40 @@ PepinNS::Pepin* dnfs;
 int force_eager = false;
 int fast_center_calc = 1;
 
-// static void signal_handler(int) {
-//     cout << endl << "c [dnfs] INTERRUPTING ***" << endl << std::flush;
-//     common.interrupt_asap = true;
-// }
+#define myopt(name, var, fun, hhelp) \
+    program.add_argument(name) \
+        .action([&](const auto& a) {var = std::fun(a.c_str());}) \
+        .default_value(var) \
+        .help(hhelp)
+#define myopt2(name1, name2, var, fun, hhelp) \
+    program.add_argument(name1, name2) \
+        .action([&](const auto& a) {var = std::fun(a.c_str());}) \
+        .default_value(var) \
+        .help(hhelp)
 
-void add_dnfs_options()
-{
+argparse::ArgumentParser program = argparse::ArgumentParser("arjun", PepinNS::Pepin::get_version_sha1(),
+        argparse::default_arguments::help);
 
-    std::ostringstream delta_val;
-    delta_val << std::setprecision(4) << delta;
-
-    dnfs_options.add_options()
-    ("help,h", "Prints help")
-    ("version", "Print version info")
-    ("epsilon,e", po::value(&epsilon)->default_value(epsilon), "epsilon")
-    ("delta,d", po::value(&delta)->default_value(delta, delta_val.str()), "delta")
-    ("verb,v", po::value(&verb)->default_value(verb), "verbosity")
-    ("seed,s", po::value(&seed)->default_value(seed), "Seed")
-    ("eager", po::value(&force_eager)->default_value(force_eager), "Force eager")
-    ("fastcenter", po::value(&fast_center_calc)->default_value(fast_center_calc), "fast center calculation")
-    ;
-
-    hidden_options.add_options()
-    ("input", po::value<string>(), "file to read");
-
-    help_options.add(dnfs_options);
-    all_options.add(dnfs_options);
-    all_options.add(hidden_options);
+void print_version() {
+    cout << "c [dnfs] SHA revision: " << PepinNS::Pepin::get_version_sha1() << endl;
+    cout << "c [dnfs] Compilation environment: " << PepinNS::Pepin::get_compilation_env() << endl;
+    std::exit(0);
 }
 
-void add_supported_options(int argc, char** argv)
-{
-    add_dnfs_options();
-    p.add("input", 1);
+void add_dnfs_options() {
+    myopt2("-v", "--verb", verb, atoi, "Verbosity");
+    program.add_argument("-v", "--version") \
+        .action([&](const auto&) {print_version(); exit(0);}) \
+        .flag()
+        .help("Print version and exit");
+    myopt2("--epsilon","-e", epsilon, atof, "epsilon");
+    myopt2("--delta","-d", delta, atof, "delta");
+    myopt2("--verb","-v", verb, atoi, "verbosity");
+    myopt2("--seed","-s", seed, atoi, "Seed");
+    myopt("--eager", force_eager, atoi, "Force eager");
+    myopt("--fastcenter", fast_center_calc, atoi, "fast center calculation");
 
-    try {
-        po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), vm);
-        if (vm.count("help"))
-        {
-            cout
-            << "Minimal projection set finder" << endl;
-
-            cout
-            << "dnfs [options] inputfile" << endl << endl;
-
-            cout << help_options << endl;
-            std::exit(0);
-        }
-
-        if (vm.count("version")) {
-            cout << "c [dnfs] SHA revision: " << PepinNS::Pepin::get_version_info() << endl;
-            cout << "c [dnfs] Compilation environment: " << PepinNS::Pepin::get_compilation_env() << endl;
-            std::exit(0);
-        }
-
-        po::notify(vm);
-    } catch (boost::exception_detail::clone_impl<
-        boost::exception_detail::error_info_injector<po::unknown_option> >& c
-    ) {
-        cerr
-        << "ERROR: Some option you gave was wrong. Please give '--help' to get help" << endl
-        << "       Unkown option: " << c.what() << endl;
-        std::exit(-1);
-    } catch (boost::bad_any_cast &e) {
-        std::cerr
-        << "ERROR! You probably gave a wrong argument type" << endl
-        << "       Bad cast: " << e.what()
-        << endl;
-
-        std::exit(-1);
-    } catch (boost::exception_detail::clone_impl<
-        boost::exception_detail::error_info_injector<po::invalid_option_value> >& what
-    ) {
-        cerr
-        << "ERROR: Invalid value '" << what.what() << "'" << endl
-        << "       given to option '" << what.get_option_name() << "'"
-        << endl;
-
-        std::exit(-1);
-    } catch (boost::exception_detail::clone_impl<
-        boost::exception_detail::error_info_injector<po::multiple_occurrences> >& what
-    ) {
-        cerr
-        << "ERROR: " << what.what() << " of option '"
-        << what.get_option_name() << "'"
-        << endl;
-
-        std::exit(-1);
-    } catch (boost::exception_detail::clone_impl<
-        boost::exception_detail::error_info_injector<po::required_option> >& what
-    ) {
-        cerr
-        << "ERROR: You forgot to give a required option '"
-        << what.get_option_name() << "'"
-        << endl;
-
-        std::exit(-1);
-    } catch (boost::exception_detail::clone_impl<
-        boost::exception_detail::error_info_injector<po::too_many_positional_options_error> >& what
-    ) {
-        cerr
-        << "ERROR: You gave too many positional arguments. Only the input CNF can be given as a positional option." << endl;
-        std::exit(-1);
-    } catch (boost::exception_detail::clone_impl<
-        boost::exception_detail::error_info_injector<po::ambiguous_option> >& what
-    ) {
-        cerr
-        << "ERROR: The option you gave was not fully written and matches" << endl
-        << "       more than one option. Please give the full option name." << endl
-        << "       The option you gave: '" << what.get_option_name() << "'" <<endl
-        << "       The alternatives are: ";
-        for(size_t i = 0; i < what.alternatives().size(); i++) {
-            cout << what.alternatives()[i];
-            if (i+1 < what.alternatives().size()) {
-                cout << ", ";
-            }
-        }
-        cout << endl;
-
-        std::exit(-1);
-    } catch (boost::exception_detail::clone_impl<
-        boost::exception_detail::error_info_injector<po::invalid_command_line_syntax> >& what
-    ) {
-        cerr
-        << "ERROR: The option you gave is missing the argument or the" << endl
-        << "       argument is given with space between the equal sign." << endl
-        << "       detailed error message: " << what.what() << endl
-        ;
-        std::exit(-1);
-    }
+    program.add_argument("files").remaining().help("input file and output file");
 }
 
 void readInAFile(const string& filename)
@@ -243,12 +134,26 @@ int main(int argc, char** argv)
             command_line += " ";
         }
     }
-    add_supported_options(argc, argv);
+    add_dnfs_options();
+    try {
+        program.parse_args(argc, argv);
+        if (program.is_used("--help")) {
+            cout
+            << "DNF probabilistic aproximate counter." << endl << endl
+            << "pepin inputfile" << endl;
+            cout << program << endl;
+            std::exit(0);
+        }
+    } catch (const std::exception& err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        exit(-1);
+    }
     dnfs = new PepinNS::Pepin(epsilon, delta, seed, verb);
     dnfs->set_force_eager(force_eager);
     dnfs->set_fast_center_calc(fast_center_calc);
 
-    cout << "c [dnfs] Pepin Version: " << dnfs->get_version_info() << endl;
+    cout << "c [dnfs] Pepin Version: " << dnfs->get_version_sha1() << endl;
     if (verb >= 2) {
         cout << "c [dnfs] compilation environment: " << dnfs->get_compilation_env()
         << endl;
@@ -264,12 +169,18 @@ int main(int argc, char** argv)
         << " delta: "<< delta << " seed: " << seed << endl;
 
     //parsing the input
-    if (vm.count("input") == 0) {
-        cout << "ERROR: you must pass a file" << endl;
+    vector<std::string> files;
+    try {
+        files = program.get<std::vector<std::string>>("files");
+        if (files.size() != 1) {
+            cout << "ERROR: you must pass at exactly file: an INPUT file" << endl;
+            exit(-1);
+        }
+    } catch (std::logic_error& e) {
+        cout << "ERROR: you must give an input file" << endl;
         exit(-1);
     }
-    const string inp = vm["input"].as<string>();
-    readInAFile(inp);
+    readInAFile(files[0]);
 
     auto low_prec_num_points = dnfs->get_low_prec_appx_num_points();
     cout << "c [dnfs] Low-precision approx num points: " << std::fixed << std::setprecision(0)

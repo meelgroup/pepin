@@ -75,5 +75,5 @@ void PepinNS::Pepin::set_var_weight(
 }
 
 void PepinNS::Pepin::set_n_cls(uint32_t n_cls) { pepin->p->set_n_cls(n_cls); }
-const char* PepinNS::Pepin::get_version_info() { return PepinIntNS::get_version_sha1(); }
+const char* PepinNS::Pepin::get_version_sha1() { return PepinIntNS::get_version_sha1(); }
 const char* PepinNS::Pepin::get_compilation_env() { return PepinIntNS::get_compilation_env(); }

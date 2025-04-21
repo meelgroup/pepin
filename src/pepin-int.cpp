@@ -414,7 +414,7 @@ void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
         min_dnf_cl_num = std::min(min_dnf_cl_num, dat.dnf_cl_num);
         max_dnf_cl_num = std::max(max_dnf_cl_num, dat.dnf_cl_num);
     }
-    cout << "Num elems: " << num_elems
+    cout << "c Num elems: " << num_elems
     << " avg dnf_cl_num: " << std::setprecision(2) << std::fixed << (double)sum_dnf_cl_num/(double)num_elems
     << " avg num updated: " << std::setprecision(2) << std::fixed << (double)sum_updated/(double)num_elems
     << " avg num checked: " << std::setprecision(2) << std::fixed << (double)sum_checked/(double)num_elems
