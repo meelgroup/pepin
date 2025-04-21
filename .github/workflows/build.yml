@@ -79,9 +79,9 @@ jobs:
       if: contains(matrix.os, 'ubuntu') && matrix.staticcompile == 'ON' && !contains(matrix.os, 'arm')
       uses: actions/upload-artifact@v4
       with:
-        name: cryptominisat5-linux-amd64
+        name: pepin-linux-amd64
         path: |
-          project/build/cryptominisat5
+          project/build/pepin
           project/build/lib/*
 
     - name: Upload Artifact - Linux arm
@@ -90,23 +90,23 @@ jobs:
       with:
         name: cryptominisat-linux-arm64
         path: |
-          project/build/cryptominisat5
+          project/build/pepin
           project/build/lib/*
 
     - name: Upload Artifact - Mac ARM64
       if: matrix.os == 'macos-14' && matrix.staticcompile == 'ON'
       uses: actions/upload-artifact@v4
       with:
-        name: cryptominisat5-mac-arm64
+        name: pepin-mac-arm64
         path: |
-          project/build/cryptominisat5
+          project/build/pepin
           project/build/lib/*
 
     - name: Upload Artifact - Mac x86_64
       if: matrix.os == 'macos-13' && matrix.staticcompile == 'ON'
       uses: actions/upload-artifact@v4
       with:
-        name: cryptominisat5-mac-x86_64
+        name: pepin-mac-x86_64
         path: |
-          project/build/cryptominisat5
+          project/build/pepin
           project/build/lib/*
