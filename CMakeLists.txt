@@ -335,7 +335,7 @@ if (GIT_EXECUTABLE)
 else()
   set(GIT_SHA "GIT-hash-notfound")
 endif()
-set(PEPIN_FULL_VERSION "1.2.0")
+set(PEPIN_FULL_VERSION "1.3.0")
 
 string(REPLACE "." ";" PEPIN_FULL_VERSION_LIST ${PEPIN_FULL_VERSION})
 SetVersionNumber("PROJECT" ${PEPIN_FULL_VERSION_LIST})
