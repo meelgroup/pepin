@@ -19,7 +19,7 @@ p dnf 20 2
 
 And outputs a probabilistically approximate count.
 
-# Building
+## Building
 We suggest downloading a [released binary](https://github.com/meelgroup/pepin/releases).
 You can also use it via Nix: simply [install Nix](https://nixos.org/download/) and then:
 ```shell
@@ -37,7 +37,8 @@ cmake ..
 make
 ```
 
-Then you can run it like:
+## Usage
+Run it via:
 ```plain
 ./pepin --epsilon 0.15 --delta 0.1 myfile.dnf
 [...]
