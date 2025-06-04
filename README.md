@@ -19,9 +19,17 @@ p dnf 20 2
 
 And outputs a probabilistically approximate count.
 
-You can build&run it with:
+# Building
+We suggest downloading a [released binary](https://github.com/meelgroup/pepin/releases).
+You can also use it via Nix: simply [install Nix](https://nixos.org/download/) and then:
+```shell
+nix profile install github:meelgroup/pepin
+```
+You will then have the `pepin` binary available in your path.
+
+If you want to build it from source, you can do so with the following commands:
 ```plain
-sudo apt-get install libgmp-dev zlib1g-dev libboost-program-options-dev cmake build-essential git
+sudo apt-get install libgmp-dev zlib1g-dev cmake build-essential git
 git clone https://github.com/meelgroup/pepin
 mkdir build
 cd build
