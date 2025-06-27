@@ -1,4 +1,3 @@
-[![build](https://github.com/meelgroup/pepin/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/meelgroup/pepin/actions/workflows/cmake-single-platform.yml)
 # Pepin
 
 Pepin is a DNF streaming counting tool that gives the number of approximate
@@ -23,7 +22,7 @@ And outputs a probabilistically approximate count.
 We suggest downloading a [released binary](https://github.com/meelgroup/pepin/releases).
 You can also use it via Nix: simply [install Nix](https://nixos.org/download/) and then:
 ```shell
-nix profile install github:meelgroup/pepin
+nix shell github:meelgroup/pepin
 ```
 You will then have the `pepin` binary available in your path.
 
