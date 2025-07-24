@@ -1,5 +1,4 @@
 # Pepin
-
 Pepin is a DNF streaming counting tool that gives the number of approximate
 points in a volume given a set of n-dimensional boxes that may intersect. Think
 of it as a tool that takes a set of cubes in space and approximates the total
@@ -19,8 +18,11 @@ p dnf 20 2
 And outputs a probabilistically approximate count.
 
 ## Building
-We suggest downloading a [released binary](https://github.com/meelgroup/pepin/releases).
-You can also use it via Nix: simply [install Nix](https://nixos.org/download/) and then:
+You can try out Pepin [from your browser](https://www.msoos.org/pepin/).
+
+We suggest downloading a [released
+binary](https://github.com/meelgroup/pepin/releases). You can also use it via
+Nix: simply [install Nix](https://nixos.org/download/) and then:
 ```shell
 nix shell github:meelgroup/pepin
 ```
