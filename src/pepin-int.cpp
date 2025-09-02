@@ -32,15 +32,14 @@
 #include <random>
 #include <cmath>
 #include <algorithm>
-#include <string.h>
 
 using std::cout;
 using std::endl;
 
 using namespace PepinIntNS;
 
-void Bucket::remove_half(std::mt19937_64& mtrand)
-{
+template<typename T>
+void Bucket<T>::remove_half(std::mt19937_64& mtrand) {
     const auto orig_size = get_size();
     if (get_size() > 0) {
         print_verb(1, "Removing half ... bucket size now: " << get_size());
@@ -56,7 +55,8 @@ void Bucket::remove_half(std::mt19937_64& mtrand)
     }
 }
 
-void Bucket::remove_sol(const vector<Lit>& cl,
+template<typename T>
+void Bucket<T>::remove_sol(const vector<Lit>& cl,
                         const vector<Weight>& var_weights,
                         std::mt19937_64& mtrand)
 {
@@ -107,8 +107,8 @@ void Bucket::remove_sol(const vector<Lit>& cl,
     }
 }
 
-void Bucket::print_contents() const
-{
+template<typename T>
+void Bucket<T>::print_contents() const {
     cout << "-- Bucket contents -- SZ: " << get_size() << endl;
     for(uint32_t i = 0, at = 0; i < elems.size(); i+=nvars, at++) {
         if (elems_dat[at].empty) continue;
@@ -121,8 +121,7 @@ void Bucket::print_contents() const
     cout << "-- Bucket contents end --: " << endl;
 }
 
-void PepinInt::set_n_cls(uint32_t n_cls)
-{
+void PepinInt::set_n_cls(uint32_t n_cls) {
     thresh = (int)(4.0*(std::log2(n_cls+1)/
         (epsilon*epsilon))*std::log2(1.0/delta));
     print_verb(2, "Threshold computed: " << thresh
@@ -377,7 +376,8 @@ struct SampleSorterGenpoint {
     }
 };
 
-void Bucket::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
+template<typename T>
+void Bucket<T>::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
 {
     const uint64_t at = add_lazy_common(dnf_cl_num);
     for(const Lit l: cl) elems.set(at+l.var(), !l.sign());
@@ -397,7 +397,8 @@ void PepinInt::add_samples(
     return;
 }
 
-void Bucket::print_elems_stats(const uint64_t tot_num_dnf_cls) const
+template<typename T>
+void Bucket<T>::print_elems_stats(const uint64_t tot_num_dnf_cls) const
 {
     uint64_t num_elems = 0;
     uint64_t sum_dnf_cl_num = 0;
