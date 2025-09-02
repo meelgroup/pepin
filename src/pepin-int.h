@@ -105,14 +105,8 @@ struct Sample {
 
 class Elems {
 public:
-    ~Elems() {
-        free(data);
-    }
-
-    uint64_t size() const {
-        return num_elems;
-    }
-
+    ~Elems() { free(data); }
+    uint64_t size() const { return num_elems; }
     value operator[](const uint64_t at) const {
         uint64_t at_pos = at/4; //4 values per byte
         uint32_t sub_at = (at % 4)<<1;
@@ -158,12 +152,10 @@ public:
         num_elems += num;
     }
 
-
 private:
     uint64_t curr_size = 0;
     uint8_t* data = NULL;
     uint64_t num_elems = 0;
-
 };
 
 class ElemDat {
@@ -212,14 +204,8 @@ public:
     }
 
     void add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num);
-
-    uint64_t get_size() const {
-        return size;
-    }
-
-    size_t nVars() const {
-        return nvars;
-    }
+    uint64_t get_size() const { return size; }
+    size_t nVars() const { return nvars; }
 
     void remove_sol(const vector<Lit>& cl,
                     const vector<Weight>& var_weights,
