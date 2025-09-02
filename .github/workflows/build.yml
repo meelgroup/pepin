@@ -1,8 +1,6 @@
 name: build
 
 on:
-  push:
-    branches: [ "*" ]
   pull_request:
     branches: [ "*" ]
 
@@ -14,7 +12,7 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [ubuntu-latest, macos-14, ubuntu-24.04-arm, macos-13]
+        os: [ubuntu-latest, macos-15, ubuntu-24.04-arm, macos-15-intel]
         build_type: [Release]
         staticcompile: [ON, OFF]
 
@@ -29,7 +27,7 @@ jobs:
         wget https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
         tar xf gmp-6.3.0.tar.xz
         cd gmp-6.3.0
-        ./configure --enable-static -enable-cxx --enable-shared
+        ./configure --enable-static -enable-cxx --enable-shared --with-pic
         make -j8
         sudo make install
         cd ..
@@ -96,7 +94,7 @@ jobs:
           project/build/include/*
 
     - name: Upload Artifact - Mac ARM64
-      if: matrix.os == 'macos-14' && matrix.staticcompile == 'ON'
+      if: matrix.os == 'macos-15' && matrix.staticcompile == 'ON'
       uses: actions/upload-artifact@v4
       with:
         name: pepin-mac-arm64
@@ -106,7 +104,7 @@ jobs:
           project/build/include/*
 
     - name: Upload Artifact - Mac x86_64
-      if: matrix.os == 'macos-13' && matrix.staticcompile == 'ON'
+      if: matrix.os == 'macos-15-intel' && matrix.staticcompile == 'ON'
       uses: actions/upload-artifact@v4
       with:
         name: pepin-mac-x86_64
