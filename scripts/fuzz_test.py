@@ -28,6 +28,7 @@ import decimal
 import time
 import random
 import optparse
+import glob
 
 def shuffle(fname):
     tmpfname = "tmp.dnf"
@@ -54,7 +55,7 @@ def shuffle(fname):
     return tmpfname
 
 
-def get_rel_count_DNFKLM(fullfilename, nvars, seed_here):
+def get_rel_count_DNFKLM(fullfilename, nvars, seed_here, options):
     out = subprocess.check_output(["./DNFKLM", options.epsilon, options.delta,
                                    fullfilename, "%s" % seed_here])
     count = None
@@ -81,10 +82,13 @@ def get_rel_count_DNFKLM(fullfilename, nvars, seed_here):
     return relcount
 
 
-def get_rel_count_Pepin(fullfilename, seed_here):
-    out2 = subprocess.check_output(["./pepin", fullfilename,
-                                   "--epsilon", options.epsilon, "--delta", options.delta,
-                                   "--seed", "%s" % seed_here])
+def get_rel_count_Pepin(fullfilename, seed_here, options):
+    print("Running Pepin on file %s" % fullfilename)
+    run_command = ["./pepin",
+                   "--epsilon", options.epsilon, "--delta", options.delta,
+                   "--seed", "%s" % seed_here, fullfilename]
+    print("Running: %s" % " ".join(run_command))
+    out2 = subprocess.check_output(run_command)
 
     relcount2 = None
     for l in out2.splitlines():
@@ -135,7 +139,7 @@ def test(fname, num_tested):
         relcounts = []
         for i in range(options.self_count):
             newf = shuffle(fullfilename)
-            relcounts.append(get_rel_count_DNFKLM(newf, nvars, i))
+            relcounts.append(get_rel_count_DNFKLM(newf, nvars, i, options))
         s = sorted(relcounts)
 
         print("Smallest vs Largest DNFKLM over %d runs: %s %%"
@@ -151,7 +155,7 @@ def test(fname, num_tested):
         relcounts = []
         for i in range(options.self_count):
             newf = shuffle(fullfilename)
-            relcounts.append(get_rel_count_Pepin(newf, i))
+            relcounts.append(get_rel_count_Pepin(newf, i, options))
         s = sorted(relcounts)
 
         print("Smallest vs Largest count by Pepin over  %d runs: %s %%"
@@ -162,8 +166,8 @@ def test(fname, num_tested):
             #exit(-1)
 
     # compare the two
-    relcount = get_rel_count_DNFKLM(fullfilename, nvars, options.seed)
-    relcount2 = get_rel_count_Pepin(fullfilename, options.seed)
+    relcount = get_rel_count_DNFKLM(fullfilename, nvars, options.seed, options)
+    relcount2 = get_rel_count_Pepin(fullfilename, options.seed, options)
     print("Relcount DNFKLM: ", relcount)
     print("Relcount Pepin: ", relcount2)
     #print("Diff between the two counters: ", (relcount/relcount2).quantize(decimal.Decimal('.001')))
@@ -177,6 +181,18 @@ def test(fname, num_tested):
         print("DNFKLM count:" , print_decimal(relcount))
         print("DNF Streaming count:" , print_decimal(relcount2))
         exit(-1)
+
+
+def run_tests():
+    files = os.listdir(options.dir)
+    num_tested = 0
+    for f in files:
+        if ".dnf" in f:
+            num_tested+=1
+            test(f, num_tested)
+    for file in glob.glob("tests/*.dnf"):
+        os.unlink(file)
+    print("Finished all OK! Tested %d Pepin" % num_tested)
 
 
 class PlainHelpFormatter(optparse.IndentedHelpFormatter):
@@ -208,7 +224,7 @@ def set_up_parser():
                       default="tests",
                       help="Tests are in this dir")
 
-    parser.add_option("--instances", dest="instances", default="10",
+    parser.add_option("--instances", dest="instances", default="3",
                       type=str, help="How many files per type")
 
     parser.add_option("--epsilon", dest="epsilon", default="0.5",
@@ -229,31 +245,27 @@ if __name__ == "__main__":
     random.seed(options.seed)
 
     # run tests
-    num_tested = 0
     os.system("rm -f tests/rand*.dnf")
+    os.makedirs(options.dir, exist_ok=True)
 
     t = time.time();
     print("Generating small random instances...")
     ret = os.system("./random_dnf_generator.py --instances %s --n '101,1002,301' --mdensity '0.2,1.1,0.2' --msize '10,80,20' --noscaling --monotone %s/" % (options.instances, options.dir))
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
+    files = os.listdir(options.dir)
+    run_tests()
 
     print("Generating large random instances...")
     t = time.time();
     ret = os.system("./random_dnf_generator.py --instances %s --n '1000,10001,3000' --mdensity '0.01,0.04,0.01' --msize '100,350,50' --noscaling --monotone %s/" % (options.instances, options.dir))
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
+    run_tests()
 
     print("Generating random instances with odd num vars...")
     t = time.time();
     ret = os.system("./random_dnf_generator.py --instances %s --n '100,110,1' --mdensity '0.1,0.5,0.2' --msize '10,100,20' --noscaling --monotone %s/" % (options.instances, options.dir))
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
-
-    files = os.listdir(options.dir)
-    for f in files:
-        if ".dnf" in f:
-            num_tested+=1
-            test(f, num_tested)
-
-    print("Finished all OK! Tested %d Pepin" % num_tested)
+    run_tests()

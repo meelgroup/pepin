@@ -24,7 +24,7 @@ We suggest downloading a [released
 binary](https://github.com/meelgroup/pepin/releases). You can also use it via
 Nix: simply [install Nix](https://nixos.org/download/) and then:
 ```shell
-nix shell github:meelgroup/pepin
+nix shell github:meelgroup/pepin#pepin
 ```
 You will then have the `pepin` binary available in your path.
 

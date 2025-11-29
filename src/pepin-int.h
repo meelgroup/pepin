@@ -170,6 +170,7 @@ public:
     uint64_t dnf_cl_num = 0; //step at which we generated it
 };
 
+template<typename T>
 class Bucket {
 public:
     Bucket (const bool& _all_default_weights, const uint32_t& _verbosity) :
@@ -233,8 +234,7 @@ public:
 private:
     uint64_t size = 0;
     uint32_t nvars = 0;
-    //vector<value> elems;
-    Elems elems;
+    T elems;
     vector<uint32_t> empties;
     vector<ElemDat> elems_dat;
 
@@ -282,10 +282,7 @@ struct PepinInt {
     const mpf_t* get_low_prec_appx_weighted_sol() const;
     const mpq_t* get_appx_weighted_sol() const;
 
-    uint32_t nVars() const {
-        return nvars;
-    }
-
+    uint32_t nVars() const { return nvars; }
     inline void set_var_weight(
             const uint32_t var,
             const uint32_t dividend,
@@ -320,7 +317,7 @@ struct PepinInt {
     uint32_t sampl_prob_expbit_before_approx = std::numeric_limits<uint32_t>::max();
     uint32_t sampl_prob_expbit_before_magic = std::numeric_limits<uint32_t>::max();
     mpz_t prod_precision;
-    Bucket bucket;
+    Bucket<Elems> bucket;
     uint64_t num_cl_added = 0;
     uint32_t verbosity;
     bool force_eager = false;
@@ -351,7 +348,6 @@ struct PepinInt {
     mpz_t ni_plus_bucketsz;
     mpz_t ni;
     vector<Lit> cl_tmp;
-
 
     // Return
     bool ret_set = false;
