@@ -51,6 +51,7 @@ double delta = 0.36;
 PepinNS::Pepin* dnfs;
 int force_eager = false;
 int fast_center_calc = 1;
+int use_sparse = 0;
 
 #define myopt(name, var, fun, hhelp) \
     program.add_argument(name) \
@@ -84,6 +85,7 @@ void add_dnfs_options() {
     myopt2("--seed","-s", seed, atoi, "Seed");
     myopt("--eager", force_eager, atoi, "Force eager");
     myopt("--fastcenter", fast_center_calc, atoi, "fast center calculation");
+    myopt("--sparse", use_sparse, atoi, "Use sparse representation (1=sparse, 0=dense (default))");
 
     program.add_argument("files").remaining().help("input file and output file");
 }
@@ -149,7 +151,10 @@ int main(int argc, char** argv)
         std::cerr << program;
         exit(-1);
     }
-    dnfs = new PepinNS::Pepin(epsilon, delta, seed, verb);
+    PepinNS::RepresentationType repr = use_sparse ?
+        PepinNS::RepresentationType::SPARSE :
+        PepinNS::RepresentationType::DENSE;
+    dnfs = new PepinNS::Pepin(epsilon, delta, seed, verb, repr);
     dnfs->set_force_eager(force_eager);
     dnfs->set_fast_center_calc(fast_center_calc);
 
@@ -166,7 +171,8 @@ int main(int argc, char** argv)
 
     double starTime = cpuTime();
     cout << "c [dnfs] using epsilon: " << epsilon
-        << " delta: "<< delta << " seed: " << seed << endl;
+        << " delta: "<< delta << " seed: " << seed
+        << " representation: " << (use_sparse ? "SPARSE" : "DENSE") << endl;
 
     //parsing the input
     vector<std::string> files;

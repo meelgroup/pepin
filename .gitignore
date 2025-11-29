@@ -3,3 +3,5 @@ compile_commands*
 .cache
 html/*.js
 html/*.wasm
+.claude/
+CLAUDE.md

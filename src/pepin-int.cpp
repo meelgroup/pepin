@@ -121,7 +121,8 @@ void Bucket<T>::print_contents() const {
     cout << "-- Bucket contents end --: " << endl;
 }
 
-void PepinInt::set_n_cls(uint32_t n_cls) {
+template<typename StorageType>
+void PepinInt<StorageType>::set_n_cls(uint32_t n_cls) {
     thresh = (int)(4.0*(std::log2(n_cls+1)/
         (epsilon*epsilon))*std::log2(1.0/delta));
     print_verb(2, "Threshold computed: " << thresh
@@ -132,7 +133,8 @@ void PepinInt::set_n_cls(uint32_t n_cls) {
     n_cls_declared = n_cls;
 }
 
-PepinInt::PepinInt(const double _epsilon, const double _delta,
+template<typename StorageType>
+PepinInt<StorageType>::PepinInt(const double _epsilon, const double _delta,
                      const uint32_t seed, const uint32_t _verbosity) :
     bucket(all_default_weights, _verbosity)
 {
@@ -175,7 +177,8 @@ PepinInt::PepinInt(const double _epsilon, const double _delta,
     mpz_set_ui(constant_one_z, 1);
 }
 
-PepinInt::~PepinInt()
+template<typename StorageType>
+PepinInt<StorageType>::~PepinInt()
 {
     mpq_clear(constant_one);
     mpz_clear(ni);
@@ -199,15 +202,18 @@ PepinInt::~PepinInt()
     mpf_clear(low_prec_num_points);
 }
 
-const char* PepinInt::get_version_info() const {
+template<typename StorageType>
+const char* PepinInt<StorageType>::get_version_info() const {
     return PepinIntNS::get_version_sha1();
 }
 
-const char* PepinInt::get_compilation_env() const {
+template<typename StorageType>
+const char* PepinInt<StorageType>::get_compilation_env() const {
     return PepinIntNS::get_compilation_env();
 }
 
-void PepinInt::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
+template<typename StorageType>
+void PepinInt<StorageType>::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
 {
     bool fast_ok = true;
     for(const Lit& l: cl) {
@@ -247,7 +253,8 @@ void PepinInt::get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out)
     }
 }
 
-void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
+template<typename StorageType>
+void PepinInt<StorageType>::magic(const vector<Lit>& cl, mpz_t samples_needed)
 {
     get_cl_precision(cl, n);
 
@@ -311,7 +318,8 @@ void PepinInt::magic(const vector<Lit>& cl, mpz_t samples_needed)
     }
 }
 
-void PepinInt::poisson(
+template<typename StorageType>
+void PepinInt<StorageType>::poisson(
     mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out)
 {
     if (sampl_prob_expbit == sampl_prob_expbit_before_approx &&
@@ -384,7 +392,8 @@ void Bucket<T>::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
     size++;
 }
 
-void PepinInt::add_samples(
+template<typename StorageType>
+void PepinInt<StorageType>::add_samples(
         const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num)
 {
     samples_called++;
@@ -424,7 +433,8 @@ void Bucket<T>::print_elems_stats(const uint64_t tot_num_dnf_cls) const
     << endl;
 }
 
-bool PepinInt::add_clause(const vector<Lit>& cl) {
+template<typename StorageType>
+bool PepinInt<StorageType>::add_clause(const vector<Lit>& cl) {
     assert(thresh != 0 && "The number of clauses was not set beforehand!");
     assert(num_cl_added < n_cls_declared);
     if (num_cl_added == 0) {
@@ -533,7 +543,8 @@ bool PepinInt::add_clause(const vector<Lit>& cl) {
     return false;
 }
 
-void PepinInt::check_ready() const
+template<typename StorageType>
+void PepinInt<StorageType>::check_ready() const
 {
     if (!ret_set) {
         cout << "ERROR, return value not yet available" << endl;
@@ -542,15 +553,24 @@ void PepinInt::check_ready() const
     }
 }
 
-const mpf_t* PepinInt::get_low_prec_appx_num_points() const {
+template<typename StorageType>
+const mpf_t* PepinInt<StorageType>::get_low_prec_appx_num_points() const {
     check_ready();
     return &low_prec_num_points;
 }
-const mpf_t* PepinInt::get_low_prec_appx_weighted_sol() const {
+template<typename StorageType>
+const mpf_t* PepinInt<StorageType>::get_low_prec_appx_weighted_sol() const {
     check_ready();
     return &low_prec_weigh_num_sols;
 }
-const mpq_t* PepinInt::get_appx_weighted_sol() const {
+template<typename StorageType>
+const mpq_t* PepinInt<StorageType>::get_appx_weighted_sol() const {
     check_ready();
     return &weigh_num_sols;
+}
+
+// Explicit template instantiations
+namespace PepinIntNS {
+    template class PepinInt<DenseElems>;
+    /* template class PepinInt<SparseElems>; */
 }

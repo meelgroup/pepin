@@ -37,6 +37,8 @@
 #include "pepin.h"
 
 using std::vector;
+using std::pair;
+using std::make_pair;
 using std::cout;
 using std::endl;
 
@@ -103,9 +105,10 @@ struct Sample {
     }
 };
 
-class Elems {
+class DenseElems {
 public:
-    ~Elems() { free(data); }
+    ~DenseElems() { free(data); }
+    void set_nvars(uint32_t _nvars) { nvars = _nvars; }
     uint64_t size() const { return num_elems; }
     value operator[](const uint64_t at) const {
         uint64_t at_pos = at/4; //4 values per byte
@@ -114,7 +117,7 @@ public:
     }
 
     void set(uint64_t at, value val) {
-        assert(val <= 3);
+        assert(val < 3);
         uint64_t at_pos = at/4; //4 values per bit
         uint32_t sub_at = (at % 4)*2;
 
@@ -126,14 +129,14 @@ public:
         data[at_pos] |= val;
     }
 
-    void fill_unset(uint64_t at, uint64_t num) {
+    void fill_unset(const uint64_t at) {
         assert(num % 4 == 0);
         assert(at % 4 == 0);
         uint64_t at_pos = at/4; //4* values per bit
-        memset(data+at_pos, 0xff, num/4);
+        memset(data+at_pos, 0xff, nvars/4);
     }
 
-    void insert_unset(uint64_t num) {
+    void insert_unset(const uint64_t num) {
         assert(num % 4 == 0);
 
         //we align it to pagesize
@@ -156,6 +159,7 @@ private:
     uint64_t curr_size = 0;
     uint8_t* data = NULL;
     uint64_t num_elems = 0;
+    uint32_t nvars = 0;
 };
 
 class ElemDat {
@@ -188,20 +192,10 @@ public:
             const size_t orig_at = empties.back();
             at = orig_at*nvars;
             empties.pop_back();
-            elems.fill_unset(at, nvars);
+            elems.fill_unset(at);
             elems_dat[orig_at] = ElemDat(dnf_cl_num);
         }
         return at;
-    }
-
-    void add(const value* sol, const uint64_t dnf_cl_num) {
-        assert(nvars > 0);
-        assert((elems.size() % nvars) == 0);
-        assert(elems_dat.size() == elems.size()/nvars);
-
-        const uint64_t at = add_lazy_common(dnf_cl_num);
-        for(uint32_t i = 0; i < nvars; i++) elems.set(at+i, sol[i]);
-        size++;
     }
 
     void add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num);
@@ -227,6 +221,7 @@ public:
         assert(_nvars > 0);
         assert(nvars == 0);
         nvars = _nvars;
+        elems.set_nvars(_nvars);
     }
 
     void print_elems_stats(const uint64_t tot_num_dnf_cls) const;
@@ -243,19 +238,36 @@ private:
     const uint32_t verbosity;
 };
 
-struct PepinInt {
+// Base class for runtime polymorphism
+struct PepinIntBase {
+    virtual ~PepinIntBase() {}
+    virtual void set_force_eager(const int _force_eager) = 0;
+    virtual void set_fast_center_calc(const int _fast_center_calc) = 0;
+    virtual uint32_t new_vars(uint32_t n) = 0;
+    virtual bool add_clause(const vector<Lit>& cl) = 0;
+    virtual uint32_t nVars() const = 0;
+    virtual void set_var_weight(const uint32_t var, const uint32_t dividend, const uint32_t divisor) = 0;
+    virtual void set_n_cls(uint32_t n_cls) = 0;
+    virtual const mpf_t* get_low_prec_appx_num_points() const = 0;
+    virtual const mpf_t* get_low_prec_appx_weighted_sol() const = 0;
+    virtual const mpq_t* get_appx_weighted_sol() const = 0;
+};
+
+template<typename StorageType>
+class PepinInt : public PepinIntBase {
+public:
     PepinInt(const double _epsilon, const double _delta, const uint32_t seed,
               const uint32_t verbosity = 1);
     ~PepinInt();
 
-    void set_force_eager(const int _force_eager) {
+    void set_force_eager(const int _force_eager) override {
         force_eager = _force_eager;
     }
-    void set_fast_center_calc(const int _fast_center_calc) {
+    void set_fast_center_calc(const int _fast_center_calc) override {
         fast_center_calc = _fast_center_calc;
     }
 
-    uint32_t new_vars(uint32_t n) {
+    uint32_t new_vars(uint32_t n) override {
         release_assert(nvars == 0);
         if ((n%4) != 0) {
             num_fake_vars = 4-(n%4);
@@ -271,22 +283,22 @@ struct PepinInt {
         return nvars;
     }
 
-    bool add_clause(const vector<Lit>& cl);
+    bool add_clause(const vector<Lit>& cl) override;
     void magic(const vector<Lit>& cl, mpz_t ni);
     void get_cl_precision(const vector<Lit>& cl, mpz_t cl_prec_out);
     void poisson(mpz_t n_local, mpq_t sampl_prob, mpz_t samples_needed_out);
     void add_samples(const vector<Lit>& cl, const uint64_t dnf_cl_num, const uint64_t num_samples);
 
     void check_ready() const;
-    const mpf_t* get_low_prec_appx_num_points() const;
-    const mpf_t* get_low_prec_appx_weighted_sol() const;
-    const mpq_t* get_appx_weighted_sol() const;
+    const mpf_t* get_low_prec_appx_num_points() const override;
+    const mpf_t* get_low_prec_appx_weighted_sol() const override;
+    const mpq_t* get_appx_weighted_sol() const override;
 
-    uint32_t nVars() const { return nvars; }
+    uint32_t nVars() const override { return nvars; }
     inline void set_var_weight(
             const uint32_t var,
             const uint32_t dividend,
-            const uint32_t divisor)
+            const uint32_t divisor) override
     {
         if (!(dividend == 1 && divisor == 2)) all_default_weights = false;
         weights[var].dividend = dividend;
@@ -297,9 +309,11 @@ struct PepinInt {
         << " divisor:" << divisor);
     }
 
-    void set_n_cls(uint32_t n_cls);
+    void set_n_cls(uint32_t n_cls) override;
     const char* get_version_info() const;
     const char* get_compilation_env() const;
+
+private:
 
     // For calculating birthday paradox
     vector<Weight> weights;
@@ -317,7 +331,7 @@ struct PepinInt {
     uint32_t sampl_prob_expbit_before_approx = std::numeric_limits<uint32_t>::max();
     uint32_t sampl_prob_expbit_before_magic = std::numeric_limits<uint32_t>::max();
     mpz_t prod_precision;
-    Bucket<Elems> bucket;
+    Bucket<StorageType> bucket;
     uint64_t num_cl_added = 0;
     uint32_t verbosity;
     bool force_eager = false;
