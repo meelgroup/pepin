@@ -31,6 +31,12 @@
 #include <gmpxx.h>
 
 namespace PepinNS {
+
+enum class RepresentationType {
+    DENSE = 0,
+    SPARSE = 1
+};
+
 struct PepinPrivate;
 
 constexpr uint32_t var_Undef(0xffffffffU >> 4);
@@ -116,7 +122,7 @@ inline std::ostream& operator<<(std::ostream& co, const std::vector<Lit>& lits)
 
 struct Pepin {
     Pepin(const double epsilon = 0.5, const double delta = 0.5, const uint32_t seed = 1,
-              const uint32_t verbosity = 0);
+              const uint32_t verbosity = 0, const RepresentationType repr = RepresentationType::DENSE);
     ~Pepin();
 
     void set_force_eager(const int force_eager);

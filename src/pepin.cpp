@@ -30,14 +30,19 @@ using namespace PepinIntNS;
 using PepinNS::Lit;
 
 struct PepinNS::PepinPrivate {
-    PepinPrivate(PepinIntNS::PepinInt *_p) : p(_p) {}
+    PepinPrivate(PepinIntNS::PepinIntBase *_p) : p(_p) {}
     ~PepinPrivate() {delete p;}
-    PepinIntNS::PepinInt* p = NULL;
+    PepinIntNS::PepinIntBase* p = NULL;
 };
 
 PepinNS::Pepin::Pepin(const double epsilon, const double delta, const uint32_t seed,
-          const uint32_t verbosity) {
-    pepin = new PepinPrivate(new PepinIntNS::PepinInt(epsilon, delta, seed, verbosity));
+          const uint32_t verbosity, const RepresentationType repr) {
+    if (repr == RepresentationType::SPARSE) {
+        cout << "c [pepin] Pepin sparse representation is not yet supported. Exiting" << endl;
+        exit(-1);
+    } else {
+        pepin = new PepinPrivate(new PepinIntNS::PepinInt<PepinIntNS::DenseElems>(epsilon, delta, seed, verbosity));
+    }
 }
 PepinNS::Pepin::~Pepin() { delete pepin; }
 

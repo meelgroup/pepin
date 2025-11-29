@@ -25,18 +25,20 @@
 
 import random
 from optparse import OptionParser
+import os
+
 random.seed(1)
 
 usage = "usage: %prog [options] outdir"
 parser = OptionParser(usage)
 parser.add_option("--instances", dest="instances", type=int,
                   help="How many instances to generate")
-parser.add_option("--n", dest="n_info", default="",
-                  help="start-stop-step for N (number of variables) in the form of 'start,stop,end'")
-parser.add_option("--mdensity", dest="mdensity_info", default="",
-                  help="start-stop-step for M density (i.e. number of clauses) in the form of 'start,stop,end'")
-parser.add_option("--msize", dest="msize_info", default="",
-                  help="start-stop-step for clause size in the form of 'start,stop,end'")
+parser.add_option("-n", dest="n_info", default="",
+                  help="start-stop-step for number of variables in the form of 'start,stop,step'")
+parser.add_option("--cldensity", dest="mdensity_info", default="",
+                  help="start-stop-step for density of clauses in the form of 'start,stop,step'")
+parser.add_option("--clsize", dest="msize_info", default="",
+                  help="start-stop-step for clause size in the form of 'start,stop,step'")
 parser.add_option("--scaling",
                   action="store_true", dest="scaling", default=False,
                   help="Scaling size with N")
@@ -130,6 +132,7 @@ nLow, nHigh, nStep = parse_triplet(options.n_info, "--n", int)
 mDensityLow, mDensityHigh, mDensityStep = parse_triplet(options.mdensity_info, "--mdensity", float)
 mSizeLow, mSizeHigh, mSizeStep  = parse_triplet(options.msize_info, "--msize", float)
 
+os.makedirs(outputDir, exist_ok=True)
 for n in range(nLow,nHigh,nStep):
     m = mDensityLow
     while m < mDensityHigh:
@@ -146,13 +149,13 @@ for n in range(nLow,nHigh,nStep):
                 opStr = "p dnf "+str(n)+" "+str(int(n*m))+'\n'
                 for j in range(int(n*m)):
                     sampVars = random.sample(range(1,n+1),k)
-                    if (j%200 == 0):
-                        sampVars = random.sample(range(1,n+1),min(n, 300*k))
+                    # if (j%200 == 0):
+                        # sampVars = random.sample(range(1,n+1),min(n, 300*k))
                     for l in sampVars:
                         if monotone == 1:
                             opStr += str(l)+" "
                         else:
-                            if random.random()>0.5:
+                            if random.choice([True, False]):
                                 opStr += str(l)+" "
                             else:
                                 opStr += "-"+str(l)+" "
