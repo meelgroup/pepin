@@ -52,6 +52,51 @@ twice. So the exact number is: 327680. Hence, we over-approximated a bit here.
 The error is `1.0-348672/327680=-0.064`, so about 6.4%. This is well below the
 advertised 15% error allowed (i.e. epsilon 0.15).
 
+## Sample Representation Modes
+Pepin keeps a bucket of in-progress samples in memory while it streams the
+input. Three internal representations are available via `--sparse N`; they
+all return the same approximate count (within the ε / δ envelope), they
+differ only in time and memory:
+
+- `--sparse 0` — **dense** (default). Each sample is `nvars`-wide, packed at
+  2 bits per variable. Fastest per-sample access; per-sample memory grows
+  linearly in `nvars`.
+- `--sparse 1` — **sparse**. Each sample starts as a sorted vector of only
+  the variables that have been pinned to a concrete value, and auto-promotes
+  to a packed dense bitset once it accumulates enough concretes. Cheaper
+  per-sample memory when most variables stay unset; pays a binary-search
+  cost on lookups while in sparse form.
+- `--sparse 2` — **hash**. Each sample stores a 64-bit seed plus the small
+  sorted list of variables pinned by `add_lazy`. Unpinned variables are
+  derived on demand via `hash(seed, var) & 1`, so samples are read-only
+  during the bucket scan. Per-sample memory does not depend on `nvars`.
+
+### When to pick which
+
+| Workload                                                  | Best mode |
+|-----------------------------------------------------------|-----------|
+| Default / unsure                                          | `0` dense |
+| Small `nvars` (≤ ~10k) with wide clauses                  | `0` dense |
+| Many variables, short clauses (k ≤ ~5)                    | `1` sparse |
+| Very large `nvars` (≥ ~50k), any clause width             | `2` hash  |
+| Weighted counting (non-1/2 weights on any variable)       | `0` or `1` |
+
+Rules of thumb:
+- For small / moderate `nvars` (≤ ~15k), dense usually wins on raw
+  throughput — its per-sample byte access is a single load.
+- Sparse stops being competitive once samples accumulate roughly `nvars/16`
+  concrete entries; for short clauses with rapid early-break that rarely
+  happens, so it wins.
+- Hash shines when `nvars` is large enough that dense's per-sample footprint
+  blows up the bucket past cache size — its per-sample storage is bounded
+  by the clause length, not `nvars`.
+
+### Limitations
+- `--sparse 2` (hash) assumes default 1/2 weights for unpinned variables.
+  For weighted counting use `--sparse 0` or `--sparse 1`.
+- `--sparse 2` (hash) bounds clause length by `HashElems::MAX_PINNINGS`
+  (64 at the time of writing). Wider clauses will abort.
+
 ## Weighted Counting
 Pepin is a streaming, weighted approximate model. Because it works with data
 streams, you must declare the weights of all literals before you start the
