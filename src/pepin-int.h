@@ -108,45 +108,62 @@ struct Sample {
 // Sample-indexed storage. Each "sample" holds nvars logical positions,
 // each in {0, 1, 3=unset}. DenseElems packs all positions as 2-bit cells;
 // SparseElems stores only positions that have been pinned to a concrete value.
+//
+// Hot path uses the *_ref accessors with a precomputed handle to skip the
+// per-call (sample_idx * nvars / 4) multiplication on every get/set, and
+// to let callers software-prefetch upcoming samples.
 class DenseElems {
 public:
-    void set_nvars(uint32_t _nvars) { nvars = _nvars; }
+    using SampleRef = uint8_t*;
+    using ConstSampleRef = const uint8_t*;
+
+    void set_nvars(uint32_t _nvars) {
+        assert(_nvars % 4 == 0);
+        nvars = _nvars;
+        bytes_per_sample_ = _nvars / 4;
+    }
     uint64_t num_samples() const { return n_samples; }
 
-    value get(uint64_t sample_idx, uint32_t var) const {
-        const uint64_t at = sample_idx*(uint64_t)nvars + var;
-        const uint64_t at_pos = at >> 2;
-        const uint32_t sub_at = (at & 3) << 1;
-        return (data[at_pos] >> sub_at) & 3;
+    SampleRef sample_ref(uint64_t sample_idx) {
+        return data.data() + sample_idx * bytes_per_sample_;
+    }
+    ConstSampleRef sample_ref(uint64_t sample_idx) const {
+        return data.data() + sample_idx * bytes_per_sample_;
     }
 
-    void set(uint64_t sample_idx, uint32_t var, value val) {
+    static value get_ref(ConstSampleRef p, uint32_t var) {
+        return (p[var >> 2] >> ((var & 3) << 1)) & 3;
+    }
+    static void set_ref(SampleRef p, uint32_t var, value val) {
         assert(val < 3);
-        const uint64_t at = sample_idx*(uint64_t)nvars + var;
-        const uint64_t at_pos = at >> 2;
-        const uint32_t sub_at = (at & 3) << 1;
-        data[at_pos] &= ~((uint8_t)3 << sub_at);
-        data[at_pos] |= (uint8_t)(val << sub_at);
+        const uint32_t sub = (var & 3) << 1;
+        uint8_t* b = p + (var >> 2);
+        *b = (*b & ~((uint8_t)3 << sub)) | (uint8_t)(val << sub);
+    }
+
+    value get(uint64_t sample_idx, uint32_t var) const {
+        return get_ref(sample_ref(sample_idx), var);
+    }
+    void set(uint64_t sample_idx, uint32_t var, value val) {
+        set_ref(sample_ref(sample_idx), var, val);
     }
 
     // Append a new sample (all positions unset). Amortized O(nvars/4)
     // thanks to vector's exponential growth.
     uint64_t add_sample() {
-        assert(nvars % 4 == 0);
         const uint64_t old_size = data.size();
-        data.resize(old_size + nvars/4, 0xff);
+        data.resize(old_size + bytes_per_sample_, 0xff);
         return n_samples++;
     }
 
     // Reset a previously allocated sample slot to all-unset (slot reuse).
     void reset_sample(uint64_t sample_idx) {
-        assert(nvars % 4 == 0);
-        const uint64_t at_pos = sample_idx*(uint64_t)nvars/4;
-        memset(data.data()+at_pos, 0xff, nvars/4);
+        memset(data.data() + sample_idx * bytes_per_sample_, 0xff, bytes_per_sample_);
     }
 
 private:
     uint32_t nvars = 0;
+    uint64_t bytes_per_sample_ = 0;
     uint64_t n_samples = 0;
     std::vector<uint8_t> data;
 };
@@ -194,41 +211,49 @@ class SparseElems {
     }
 
 public:
+    using SampleRef = Sample*;
+    using ConstSampleRef = const Sample*;
+
     void set_nvars(uint32_t _nvars) {
         assert(_nvars % 4 == 0);
         nvars = _nvars;
     }
     uint64_t num_samples() const { return samples.size(); }
 
-    value get(uint64_t sample_idx, uint32_t var) const {
-        const Sample& s = samples[sample_idx];
-        if (s.is_dense) {
-            const uint64_t at_pos = var >> 2;
-            const uint32_t sub_at = (var & 3) << 1;
-            return (s.dense[at_pos] >> sub_at) & 3;
+    SampleRef sample_ref(uint64_t sample_idx) { return &samples[sample_idx]; }
+    ConstSampleRef sample_ref(uint64_t sample_idx) const { return &samples[sample_idx]; }
+
+    static value get_ref(ConstSampleRef s, uint32_t var) {
+        if (s->is_dense) {
+            return (s->dense[var >> 2] >> ((var & 3) << 1)) & 3;
         }
-        auto it = std::lower_bound(s.sparse.begin(), s.sparse.end(), var, cmp_var);
-        if (it != s.sparse.end() && it->first == var) return it->second;
+        auto it = std::lower_bound(s->sparse.begin(), s->sparse.end(), var, cmp_var);
+        if (it != s->sparse.end() && it->first == var) return it->second;
         return 3;
     }
 
-    void set(uint64_t sample_idx, uint32_t var, value val) {
+    void set_ref(SampleRef s, uint32_t var, value val) {
         assert(val < 3);
-        Sample& s = samples[sample_idx];
-        if (s.is_dense) {
-            const uint64_t at_pos = var >> 2;
-            const uint32_t sub_at = (var & 3) << 1;
-            s.dense[at_pos] &= ~((uint8_t)3 << sub_at);
-            s.dense[at_pos] |= (uint8_t)(val << sub_at);
+        if (s->is_dense) {
+            const uint32_t sub = (var & 3) << 1;
+            uint8_t* b = &s->dense[var >> 2];
+            *b = (*b & ~((uint8_t)3 << sub)) | (uint8_t)(val << sub);
             return;
         }
-        auto it = std::lower_bound(s.sparse.begin(), s.sparse.end(), var, cmp_var);
-        if (it != s.sparse.end() && it->first == var) {
+        auto it = std::lower_bound(s->sparse.begin(), s->sparse.end(), var, cmp_var);
+        if (it != s->sparse.end() && it->first == var) {
             it->second = (uint8_t)val;
             return;
         }
-        s.sparse.emplace(it, var, (uint8_t)val);
-        if (s.sparse.size() > DENSE_SWITCH_THRESH) promote(s);
+        s->sparse.emplace(it, var, (uint8_t)val);
+        if (s->sparse.size() > DENSE_SWITCH_THRESH) promote(*s);
+    }
+
+    value get(uint64_t sample_idx, uint32_t var) const {
+        return get_ref(sample_ref(sample_idx), var);
+    }
+    void set(uint64_t sample_idx, uint32_t var, value val) {
+        set_ref(sample_ref(sample_idx), var, val);
     }
 
     uint64_t add_sample() {
