@@ -148,6 +148,7 @@ PepinInt<StorageType>::PepinInt(const double _epsilon, const double _delta,
     bucket(all_default_weights, _verbosity)
 {
     mtrand.seed(seed);
+    bucket.set_seed(seed);
     epsilon = _epsilon;
     delta = _delta;
     verbosity = _verbosity;
@@ -599,4 +600,5 @@ const mpq_t* PepinInt<StorageType>::get_appx_weighted_sol() const {
 namespace PepinIntNS {
     template class PepinInt<DenseElems>;
     template class PepinInt<SparseElems>;
+    template class PepinInt<HashElems>;
 }

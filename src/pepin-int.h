@@ -122,6 +122,7 @@ public:
         nvars = _nvars;
         bytes_per_sample_ = _nvars / 4;
     }
+    void set_seed(uint64_t /*s*/) {} // no-op: dense doesn't use seeds
     uint64_t num_samples() const { return n_samples; }
 
     SampleRef sample_ref(uint64_t sample_idx) {
@@ -218,6 +219,7 @@ public:
         assert(_nvars % 4 == 0);
         nvars = _nvars;
     }
+    void set_seed(uint64_t /*s*/) {} // no-op: sparse doesn't use seeds
     uint64_t num_samples() const { return samples.size(); }
 
     SampleRef sample_ref(uint64_t sample_idx) { return &samples[sample_idx]; }
@@ -272,6 +274,85 @@ public:
 
 private:
     uint32_t nvars = 0;
+    std::vector<Sample> samples;
+};
+
+// Hash-based per-sample storage. Each sample is just a uint64_t seed plus
+// the small sorted list of (var, value) pairs pinned by add_lazy. Unpinned
+// vars are derived on demand via hash(seed, var) & 1. Samples are immutable
+// after add_lazy -- remove_sol never writes, so the bucket is read-only
+// during scans. Tradeoff: only supports default 1/2 weights (sampling
+// distribution); for weighted vars use Dense or Sparse.
+class HashElems {
+    struct Sample {
+        uint64_t seed = 0;
+        std::vector<std::pair<uint32_t, uint8_t>> pinnings; // sorted by var
+    };
+
+    static bool cmp_var(const std::pair<uint32_t, uint8_t>& p, uint32_t v) {
+        return p.first < v;
+    }
+
+    // splitmix64 over (seed XOR varmix). Good enough for uniform single-bit
+    // extraction; cheap (a few muls + shifts) and inlines well.
+    static uint64_t mix(uint64_t seed, uint32_t var) {
+        uint64_t x = seed ^ ((uint64_t)var * 0x9E3779B97F4A7C15ULL);
+        x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        x = (x ^ (x >> 27)) * 0x94D049BB133111EBULL;
+        return x ^ (x >> 31);
+    }
+
+public:
+    using SampleRef = Sample*;
+    using ConstSampleRef = const Sample*;
+
+    void set_nvars(uint32_t _nvars) { nvars = _nvars; }
+    void set_seed(uint64_t s) { seed_gen.seed(s); }
+    uint64_t num_samples() const { return samples.size(); }
+
+    SampleRef sample_ref(uint64_t sample_idx) { return &samples[sample_idx]; }
+    ConstSampleRef sample_ref(uint64_t sample_idx) const { return &samples[sample_idx]; }
+
+    static value get_ref(ConstSampleRef s, uint32_t var) {
+        const auto& p = s->pinnings;
+        auto it = std::lower_bound(p.begin(), p.end(), var, cmp_var);
+        if (it != p.end() && it->first == var) return it->second;
+        return (value)(mix(s->seed, var) & 1);
+    }
+
+    static void set_ref(SampleRef s, uint32_t var, value val) {
+        assert(val < 3);
+        auto& p = s->pinnings;
+        auto it = std::lower_bound(p.begin(), p.end(), var, cmp_var);
+        if (it != p.end() && it->first == var) {
+            it->second = (uint8_t)val;
+        } else {
+            p.emplace(it, var, (uint8_t)val);
+        }
+    }
+
+    value get(uint64_t sample_idx, uint32_t var) const {
+        return get_ref(sample_ref(sample_idx), var);
+    }
+    void set(uint64_t sample_idx, uint32_t var, value val) {
+        set_ref(sample_ref(sample_idx), var, val);
+    }
+
+    uint64_t add_sample() {
+        samples.emplace_back();
+        samples.back().seed = seed_gen();
+        return samples.size() - 1;
+    }
+
+    void reset_sample(uint64_t sample_idx) {
+        Sample& s = samples[sample_idx];
+        s.pinnings.clear();
+        s.seed = seed_gen();
+    }
+
+private:
+    uint32_t nvars = 0;
+    std::mt19937_64 seed_gen;
     std::vector<Sample> samples;
 };
 
@@ -335,6 +416,7 @@ public:
         nvars = _nvars;
         elems.set_nvars(_nvars);
     }
+    void set_seed(uint64_t s) { elems.set_seed(s); }
 
     void print_elems_stats(const uint64_t tot_num_dnf_cls) const;
 

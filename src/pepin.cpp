@@ -39,6 +39,8 @@ PepinNS::Pepin::Pepin(const double epsilon, const double delta, const uint32_t s
           const uint32_t verbosity, const RepresentationType repr) {
     if (repr == RepresentationType::SPARSE) {
         pepin = new PepinPrivate(new PepinIntNS::PepinInt<PepinIntNS::SparseElems>(epsilon, delta, seed, verbosity));
+    } else if (repr == RepresentationType::HASH) {
+        pepin = new PepinPrivate(new PepinIntNS::PepinInt<PepinIntNS::HashElems>(epsilon, delta, seed, verbosity));
     } else {
         pepin = new PepinPrivate(new PepinIntNS::PepinInt<PepinIntNS::DenseElems>(epsilon, delta, seed, verbosity));
     }
