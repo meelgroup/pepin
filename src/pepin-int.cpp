@@ -44,7 +44,8 @@ void Bucket<T>::remove_half(std::mt19937_64& mtrand) {
     if (get_size() > 0) {
         print_verb(1, "Removing half ... bucket size now: " << get_size());
     }
-    for(size_t i = 0, at = 0; i < elems.size(); i+=nvars, at++) {
+    const uint64_t n = elems.num_samples();
+    for(uint64_t at = 0; at < n; at++) {
         if (elems_dat[at].empty) continue;
         int ok = mtrand()&1;
         if (ok) continue;
@@ -61,9 +62,10 @@ void Bucket<T>::remove_sol(const vector<Lit>& cl,
                         std::mt19937_64& mtrand)
 {
     const size_t size_before = get_size();
-    uint64_t rand_pool;
+    uint64_t rand_pool = 0;
     uint32_t rand_pool_bits = 0;
-    for(size_t i = 0, at = 0; i < elems.size(); i+=nvars, at++) {
+    const uint64_t n = elems.num_samples();
+    for(uint64_t at = 0; at < n; at++) {
         if (elems_dat[at].empty) continue;
         elems_dat[at].checked++;
 
@@ -71,9 +73,10 @@ void Bucket<T>::remove_sol(const vector<Lit>& cl,
         bool updated = false;
         for(const auto& lit: cl) {
             const uint32_t var = lit.var();
+            const value v = elems.get(at, var);
 
             //lazy, let's make it real
-            if (elems[i+var] == 3) {
+            if (v == 3) {
                 updated = true;
                 WeightPrec w;
 
@@ -88,15 +91,15 @@ void Bucket<T>::remove_sol(const vector<Lit>& cl,
                 }
                 if ((all_default_weights && (w == 0))
                     || (!all_default_weights && w < var_weights[var].dividend)) {
-                    elems.set(i+var, 1);
+                    elems.set(at, var, 1);
                     if (!lit.sign() != 1) {sol=false;break;}
                 } else {
-                    elems.set(i+var, 0);
+                    elems.set(at, var, 0);
                     if (!lit.sign() != 0) {sol=false;break;}
                 }
             } else {
                 //Filter on eager
-                if (elems[i+var] != !lit.sign()) {sol=false;break;}
+                if (v != !lit.sign()) {sol=false;break;}
             }
         }
         if (sol) remove(at);
@@ -110,11 +113,12 @@ void Bucket<T>::remove_sol(const vector<Lit>& cl,
 template<typename T>
 void Bucket<T>::print_contents() const {
     cout << "-- Bucket contents -- SZ: " << get_size() << endl;
-    for(uint32_t i = 0, at = 0; i < elems.size(); i+=nvars, at++) {
+    const uint64_t n = elems.num_samples();
+    for(uint64_t at = 0; at < n; at++) {
         if (elems_dat[at].empty) continue;
         cout << "[" << std::setw(5) << at << "]: ";
-        for(uint32_t i2 = 0; i2 < nvars; i2++) {
-            cout << (int)elems[i+i2];
+        for(uint32_t v = 0; v < nvars; v++) {
+            cout << (int)elems.get(at, v);
         }
         cout << endl;
     }
@@ -388,7 +392,7 @@ template<typename T>
 void Bucket<T>::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
 {
     const uint64_t at = add_lazy_common(dnf_cl_num);
-    for(const Lit l: cl) elems.set(at+l.var(), !l.sign());
+    for(const Lit l: cl) elems.set(at, l.var(), !l.sign());
     size++;
 }
 
@@ -572,5 +576,5 @@ const mpq_t* PepinInt<StorageType>::get_appx_weighted_sol() const {
 // Explicit template instantiations
 namespace PepinIntNS {
     template class PepinInt<DenseElems>;
-    /* template class PepinInt<SparseElems>; */
+    template class PepinInt<SparseElems>;
 }
