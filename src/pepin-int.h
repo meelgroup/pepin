@@ -151,36 +151,84 @@ private:
     std::vector<uint8_t> data;
 };
 
-// Sparse per-sample storage: each sample is a sorted-by-var vector of
-// (var, value) pairs. Any var not present reads as 3 (unset). get/set
-// use binary search, so cost is O(log N) for get and updates, O(log N + N)
-// for fresh inserts (shift). Targets workloads with many variables and
-// short-to-moderate clauses; remains efficient as samples accumulate
-// concrete entries across many remove_sol passes.
+// Hybrid per-sample storage. Each sample starts in sparse mode (sorted
+// vector of (var, value) pairs, binary-searched). Once its concrete-entry
+// count crosses nvars / DENSE_SWITCH_RATIO, it auto-promotes to a packed
+// 2-bit-per-var dense bitset, at which point get/set become O(1).
+//
+// Short-lived samples (killed quickly by remove_sol) never promote and
+// stay cheap. Long-lived samples that would otherwise accumulate O(N^2)
+// insert cost in a sorted vector pay a one-shot promotion and then run
+// at dense speed.
 class SparseElems {
     static bool cmp_var(const std::pair<uint32_t, uint8_t>& p, uint32_t v) {
         return p.first < v;
     }
+
+    struct Sample {
+        std::vector<std::pair<uint32_t, uint8_t>> sparse;
+        std::vector<uint8_t> dense; // empty until promoted; size nvars/4
+        bool is_dense = false;
+    };
+
+    // Promote when sparse entries exceed this. Tuned for runtime, not
+    // memory: sparse insert is O(N) per shift, so total per-sample insert
+    // cost is O(N^2); dense set is O(1). Crossover where per-insert cost
+    // of sparse exceeds dense is roughly N>=8, so we cap N around there.
+    // For very long-lived samples this means we briefly stay sparse, then
+    // run at dense speed for the bulk of remove_sol passes. Short-lived
+    // samples (high k -> low survival, or k=3 with rapid kills) never
+    // promote and keep the sparse-side wins of cheap add/reset.
+    static constexpr uint32_t DENSE_SWITCH_THRESH = 32;
+
+    void promote(Sample& s) const {
+        s.dense.assign(nvars/4, 0xff);
+        for (const auto& p : s.sparse) {
+            const uint64_t at_pos = p.first >> 2;
+            const uint32_t sub_at = (p.first & 3) << 1;
+            s.dense[at_pos] &= ~((uint8_t)3 << sub_at);
+            s.dense[at_pos] |= (uint8_t)(p.second << sub_at);
+        }
+        std::vector<std::pair<uint32_t, uint8_t>>().swap(s.sparse);
+        s.is_dense = true;
+    }
+
 public:
-    void set_nvars(uint32_t _nvars) { nvars = _nvars; }
+    void set_nvars(uint32_t _nvars) {
+        assert(_nvars % 4 == 0);
+        nvars = _nvars;
+    }
     uint64_t num_samples() const { return samples.size(); }
 
     value get(uint64_t sample_idx, uint32_t var) const {
-        const auto& s = samples[sample_idx];
-        auto it = std::lower_bound(s.begin(), s.end(), var, cmp_var);
-        if (it != s.end() && it->first == var) return it->second;
+        const Sample& s = samples[sample_idx];
+        if (s.is_dense) {
+            const uint64_t at_pos = var >> 2;
+            const uint32_t sub_at = (var & 3) << 1;
+            return (s.dense[at_pos] >> sub_at) & 3;
+        }
+        auto it = std::lower_bound(s.sparse.begin(), s.sparse.end(), var, cmp_var);
+        if (it != s.sparse.end() && it->first == var) return it->second;
         return 3;
     }
 
     void set(uint64_t sample_idx, uint32_t var, value val) {
         assert(val < 3);
-        auto& s = samples[sample_idx];
-        auto it = std::lower_bound(s.begin(), s.end(), var, cmp_var);
-        if (it != s.end() && it->first == var) {
-            it->second = (uint8_t)val;
-        } else {
-            s.emplace(it, var, (uint8_t)val);
+        Sample& s = samples[sample_idx];
+        if (s.is_dense) {
+            const uint64_t at_pos = var >> 2;
+            const uint32_t sub_at = (var & 3) << 1;
+            s.dense[at_pos] &= ~((uint8_t)3 << sub_at);
+            s.dense[at_pos] |= (uint8_t)(val << sub_at);
+            return;
         }
+        auto it = std::lower_bound(s.sparse.begin(), s.sparse.end(), var, cmp_var);
+        if (it != s.sparse.end() && it->first == var) {
+            it->second = (uint8_t)val;
+            return;
+        }
+        s.sparse.emplace(it, var, (uint8_t)val);
+        if (s.sparse.size() > DENSE_SWITCH_THRESH) promote(s);
     }
 
     uint64_t add_sample() {
@@ -189,12 +237,17 @@ public:
     }
 
     void reset_sample(uint64_t sample_idx) {
-        samples[sample_idx].clear();
+        Sample& s = samples[sample_idx];
+        // Reset to sparse mode; release the dense buffer if any so the
+        // freed slot doesn't carry stale promotion state into reuse.
+        s.sparse.clear();
+        std::vector<uint8_t>().swap(s.dense);
+        s.is_dense = false;
     }
 
 private:
     uint32_t nvars = 0;
-    std::vector<std::vector<std::pair<uint32_t, uint8_t>>> samples;
+    std::vector<Sample> samples;
 };
 
 class ElemDat {
