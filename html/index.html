@@ -116,8 +116,22 @@
         <div>
             <label>Sample representation:</label>
             <div class="radio-group">
-                <label><input type="radio" name="repr" value="0" checked>Dense (default)</label>
-                <label><input type="radio" name="repr" value="1">Sparse (faster for many vars / short clauses)</label>
+                <label><input type="radio" name="repr" value="0" checked>Dense</label>
+                <label><input type="radio" name="repr" value="1">Sparse</label>
+                <label><input type="radio" name="repr" value="2">Hash</label>
+            </div>
+            <div style="font-size: 0.9em; color: #555; margin-top: 8px;">
+                <strong>Which to pick:</strong>
+                <ul style="margin: 4px 0 0 18px; padding: 0;">
+                    <li><strong>Dense (default)</strong> — best for small or moderate
+                        <code>nvars</code> (≤ ~15k). Fastest per-sample access.</li>
+                    <li><strong>Sparse</strong> — best when <code>nvars</code> is large
+                        and clauses are short (k ≤ ~5), so most variables stay unset.</li>
+                    <li><strong>Hash</strong> — best for very large <code>nvars</code>
+                        (≥ ~50k). Per-sample memory is bounded by clause length, not
+                        <code>nvars</code>. <em>Limitations: assumes default 1/2
+                        weights, and clauses must be ≤ 64 literals.</em></li>
+                </ul>
             </div>
         </div>
 
