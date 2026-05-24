@@ -32,8 +32,12 @@
 #include <iostream>
 #include <gmpxx.h>
 #include <string.h>
+#ifdef _WIN32
+#include <malloc.h>
+#else
 #include <unistd.h>
 #include <sys/mman.h>
+#endif
 #include "pepin.h"
 
 using std::vector;
@@ -107,7 +111,13 @@ struct Sample {
 
 class DenseElems {
 public:
-    ~DenseElems() { free(data); }
+    ~DenseElems() {
+#ifdef _WIN32
+        _aligned_free(data);
+#else
+        free(data);
+#endif
+    }
     void set_nvars(uint32_t _nvars) { nvars = _nvars; }
     uint64_t size() const { return num_elems; }
     value operator[](const uint64_t at) const {
@@ -140,18 +150,33 @@ public:
         assert(num % 4 == 0);
 
         //we align it to pagesize
+#ifdef _WIN32
+        const uint32_t pagesize = 4096;
+#else
         const auto pagesize = getpagesize();
+#endif
         uint8_t* data2;
+#ifdef _WIN32
+        data2 = (uint8_t*)_aligned_malloc(curr_size+num/4, pagesize);
+        assert(data2 != nullptr);
+#else
         auto ret = posix_memalign((void**)&data2, pagesize, curr_size+num/4);
         assert(ret == 0);
+#endif
         if (data) memcpy(data2, data, curr_size);
         memset(data2+curr_size, 0xff, num/4);
         curr_size+=num/4;
+#ifdef _WIN32
+        _aligned_free(data);
+#else
         free(data);
+#endif
         data = data2;
 
+#ifndef _WIN32
         //and tell the kernel that we'll use it by accessing it randomly
         madvise(data, curr_size, MADV_RANDOM);
+#endif
         num_elems += num;
     }
 
