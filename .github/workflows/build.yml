@@ -15,6 +15,9 @@ jobs:
         os: [ubuntu-latest, macos-15, ubuntu-24.04-arm, macos-15-intel, windows-latest]
         build_type: [Release]
         staticcompile: [ON, OFF]
+        exclude:
+          - os: windows-latest
+            staticcompile: OFF
 
     steps:
     - name: Set up MSYS2
