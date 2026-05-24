@@ -284,3 +284,18 @@ if __name__ == "__main__":
     assert ret == 0, "random DNF generation failed"
     print("Done, T: ", time.time()-t)
     run_tests()
+
+    # Many-clauses regime — the sparse target. The scaffolded generator
+    # is O(N^2) on this shape, so use fast_gen.py instead.
+    print("Generating MANY-clauses instances (sparse target)...")
+    os.system("rm -f %s/rand*.dnf %s/big_*.dnf" % (options.dir, options.dir))
+    t = time.time()
+    instances = int(options.instances)
+    for idx in range(instances):
+        # Each instance: 10k vars x 50k clauses x 3-lit. Big enough to
+        # expose dense vs sparse perf gap, small enough for DNFKLM.
+        out = "%s/big_%d.dnf" % (options.dir, idx)
+        ret = os.system("./fast_gen.py 10000 50000 3 %s %d" % (out, idx + 1))
+        assert ret == 0, "fast_gen.py failed"
+    print("Done, T: ", time.time()-t)
+    run_tests()
