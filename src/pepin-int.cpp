@@ -41,9 +41,6 @@ using namespace PepinIntNS;
 template<typename T>
 void Bucket<T>::remove_half(std::mt19937_64& mtrand) {
     const auto orig_size = get_size();
-    if (get_size() > 0) {
-        print_verb(1, "Removing half ... bucket size now: " << get_size());
-    }
     const uint64_t n = elems.num_samples();
     for(uint64_t at = 0; at < n; at++) {
         if (elems_dat[at].empty) continue;
@@ -298,6 +295,14 @@ void PepinInt<StorageType>::magic(const vector<Lit>& cl, mpz_t samples_needed)
         print_verb(2, "Sampl. prob is now: 2**-" << sampl_prob_expbit
             << " nvars-expprob = " << nvars-sampl_prob_expbit
             << " bucket size: " << bucket.get_size());
+        if (bucket.get_size() > 0) {
+            const uint64_t cur = num_cl_added + 1;
+            const double pct = n_cls_declared ? 100.0*(double)cur/(double)n_cls_declared : 0.0;
+            print_verb(1, "Removing half ... bucket size now: " << bucket.get_size()
+                << "  cl: " << cur << "/" << n_cls_declared
+                << " (" << std::fixed << std::setprecision(2) << pct << "%)"
+                << "  T: " << std::setprecision(2) << cpuTime() << "s");
+        }
         bucket.remove_half(mtrand);
     }
     if (quick_halfing_ran) {
@@ -326,6 +331,14 @@ void PepinInt<StorageType>::magic(const vector<Lit>& cl, mpz_t samples_needed)
         print_verb(2, "Sampl. prob is now: 2**-" << sampl_prob_expbit
         << " nvars-expprob = " << nvars-sampl_prob_expbit
         << " bucket size: " << bucket.get_size());
+        if (bucket.get_size() > 0) {
+            const uint64_t cur = num_cl_added + 1;
+            const double pct = n_cls_declared ? 100.0*(double)cur/(double)n_cls_declared : 0.0;
+            print_verb(1, "Removing half ... bucket size now: " << bucket.get_size()
+                << "  cl: " << cur << "/" << n_cls_declared
+                << " (" << std::fixed << std::setprecision(2) << pct << "%)"
+                << "  T: " << std::setprecision(2) << cpuTime() << "s");
+        }
         bucket.remove_half(mtrand);
     }
 }
