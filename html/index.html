@@ -68,6 +68,20 @@
             display: block;
             margin-bottom: 5px;
         }
+        .radio-group {
+            margin-top: 5px;
+        }
+        .radio-group label {
+            display: inline-flex;
+            align-items: center;
+            font-weight: normal;
+            margin-right: 20px;
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        .radio-group input[type="radio"] {
+            margin-right: 6px;
+        }
         .progress-container {
             width: 100%;
             background-color: #f1f1f1;
@@ -97,6 +111,14 @@
 1 2 0
 -3 -1 -2 0
 </textarea>
+        </div>
+
+        <div>
+            <label>Sample representation:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="repr" value="0" checked>Dense (default)</label>
+                <label><input type="radio" name="repr" value="1">Sparse (faster for many vars / short clauses)</label>
+            </div>
         </div>
 
         <div>
@@ -162,9 +184,11 @@
                     }
                     else if (e.data.type === 'run') {
                         try {
-                            console.log('Running with args:', e.data.args);
+                            const extraArgs = Array.isArray(e.data.args) ? e.data.args : [];
+                            const args = extraArgs.concat(['/input.dnf']);
+                            console.log('Running with args:', args);
                             Module.FS.writeFile('/input.dnf', e.data.input);
-                            Module.callMain(['/input.dnf']);
+                            Module.callMain(args);
                             postMessage({ type: 'done' });
                         } catch (e) {
                             postMessage({ type: 'error', content: e.toString() });
@@ -206,9 +230,12 @@
                         break;
                     case 'ready':
                         //console.log('ready. Sending input:', inputContent);
+                        const reprChoice = document.querySelector('input[name="repr"]:checked');
+                        const sparseVal = reprChoice ? reprChoice.value : '0';
                         worker.postMessage({
                             type: 'run',
-                            input: inputContent
+                            input: inputContent,
+                            args: ['--sparse', sparseVal]
                         });
                         break;
                     case 'done':
