@@ -31,6 +31,7 @@
 #include <random>
 #include <iostream>
 #include <utility>
+#include <algorithm>
 #include <gmpxx.h>
 #include <string.h>
 #include "pepin.h"
@@ -150,26 +151,36 @@ private:
     std::vector<uint8_t> data;
 };
 
-// Sparse per-sample storage: each sample is a flat vector of (var, value)
-// pairs. Any var not present reads as 3 (unset). Targets workloads with
-// many variables but short clauses, where each sample only pins a handful
-// of positions.
+// Sparse per-sample storage: each sample is a sorted-by-var vector of
+// (var, value) pairs. Any var not present reads as 3 (unset). get/set
+// use binary search, so cost is O(log N) for get and updates, O(log N + N)
+// for fresh inserts (shift). Targets workloads with many variables and
+// short-to-moderate clauses; remains efficient as samples accumulate
+// concrete entries across many remove_sol passes.
 class SparseElems {
+    static bool cmp_var(const std::pair<uint32_t, uint8_t>& p, uint32_t v) {
+        return p.first < v;
+    }
 public:
     void set_nvars(uint32_t _nvars) { nvars = _nvars; }
     uint64_t num_samples() const { return samples.size(); }
 
     value get(uint64_t sample_idx, uint32_t var) const {
         const auto& s = samples[sample_idx];
-        for (const auto& p : s) if (p.first == var) return p.second;
+        auto it = std::lower_bound(s.begin(), s.end(), var, cmp_var);
+        if (it != s.end() && it->first == var) return it->second;
         return 3;
     }
 
     void set(uint64_t sample_idx, uint32_t var, value val) {
         assert(val < 3);
         auto& s = samples[sample_idx];
-        for (auto& p : s) if (p.first == var) { p.second = (uint8_t)val; return; }
-        s.emplace_back(var, (uint8_t)val);
+        auto it = std::lower_bound(s.begin(), s.end(), var, cmp_var);
+        if (it != s.end() && it->first == var) {
+            it->second = (uint8_t)val;
+        } else {
+            s.emplace(it, var, (uint8_t)val);
+        }
     }
 
     uint64_t add_sample() {
