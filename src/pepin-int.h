@@ -130,7 +130,7 @@ public:
     }
 
     void fill_unset(const uint64_t at) {
-        assert(num % 4 == 0);
+        assert(nvars % 4 == 0);
         assert(at % 4 == 0);
         uint64_t at_pos = at/4; //4* values per bit
         memset(data+at_pos, 0xff, nvars/4);
