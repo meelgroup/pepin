@@ -65,15 +65,23 @@ void Bucket<T>::remove_sol(const vector<Lit>& cl,
     uint64_t rand_pool = 0;
     uint32_t rand_pool_bits = 0;
     const uint64_t n = elems.num_samples();
+    // Lookahead distance for the software prefetch. ~8 samples ahead lets
+    // the memory subsystem keep multiple cache-line loads in flight, so
+    // the bucket-wide pass becomes bandwidth-bound instead of latency-bound.
+    constexpr uint64_t PREFETCH_AHEAD = 8;
     for(uint64_t at = 0; at < n; at++) {
         if (elems_dat[at].empty) continue;
+        if (at + PREFETCH_AHEAD < n) {
+            __builtin_prefetch(elems.sample_ref(at + PREFETCH_AHEAD), 0, 0);
+        }
         elems_dat[at].checked++;
 
+        auto sref = elems.sample_ref(at);
         bool sol = true;
         bool updated = false;
         for(const auto& lit: cl) {
             const uint32_t var = lit.var();
-            const value v = elems.get(at, var);
+            const value v = elems.get_ref(sref, var);
 
             //lazy, let's make it real
             if (v == 3) {
@@ -91,10 +99,10 @@ void Bucket<T>::remove_sol(const vector<Lit>& cl,
                 }
                 if ((all_default_weights && (w == 0))
                     || (!all_default_weights && w < var_weights[var].dividend)) {
-                    elems.set(at, var, 1);
+                    elems.set_ref(sref, var, 1);
                     if (!lit.sign() != 1) {sol=false;break;}
                 } else {
-                    elems.set(at, var, 0);
+                    elems.set_ref(sref, var, 0);
                     if (!lit.sign() != 0) {sol=false;break;}
                 }
             } else {
@@ -392,7 +400,8 @@ template<typename T>
 void Bucket<T>::add_lazy(const vector<Lit>& cl, const uint64_t dnf_cl_num)
 {
     const uint64_t at = add_lazy_common(dnf_cl_num);
-    for(const Lit l: cl) elems.set(at, l.var(), !l.sign());
+    auto sref = elems.sample_ref(at);
+    for(const Lit l: cl) elems.set_ref(sref, l.var(), !l.sign());
     size++;
 }
 
