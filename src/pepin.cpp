@@ -38,8 +38,7 @@ struct PepinNS::PepinPrivate {
 PepinNS::Pepin::Pepin(const double epsilon, const double delta, const uint32_t seed,
           const uint32_t verbosity, const RepresentationType repr) {
     if (repr == RepresentationType::SPARSE) {
-        cout << "c [pepin] Pepin sparse representation is not yet supported. Exiting" << endl;
-        exit(-1);
+        pepin = new PepinPrivate(new PepinIntNS::PepinInt<PepinIntNS::SparseElems>(epsilon, delta, seed, verbosity));
     } else {
         pepin = new PepinPrivate(new PepinIntNS::PepinInt<PepinIntNS::DenseElems>(epsilon, delta, seed, verbosity));
     }

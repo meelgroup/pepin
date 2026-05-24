@@ -82,17 +82,16 @@ def get_rel_count_DNFKLM(fullfilename, nvars, seed_here, options):
     return relcount
 
 
-def get_rel_count_Pepin(fullfilename, seed_here, options):
+def get_rel_count_Pepin(fullfilename, seed_here, options, sparse=None):
+    if sparse is None:
+        sparse = options.sparse
     run_command = ["./pepin",
                    "--epsilon", options.epsilon, "--delta", options.delta,
-                   "--seed", "%s" % seed_here]
-    if options.sparse:
-        run_command.extend(["--sparse", "1"])
-    else:
-        run_command.extend(["--sparse", "0"])
-    run_command.append(fullfilename)
+                   "--seed", "%s" % seed_here,
+                   "--sparse", "1" if sparse else "0",
+                   fullfilename]
     if options.verbose:
-        print("Running Pepin on file %s" % fullfilename)
+        print("Running Pepin (sparse=%s) on file %s" % (sparse, fullfilename))
         print("Running: %s" % " ".join(run_command))
     out2 = subprocess.check_output(run_command)
 
@@ -174,22 +173,26 @@ def test(fname, num_tested, options):
             print("WARNING: too large difference by the same counter, Pepin!!")
             #exit(-1)
 
-    # compare the two
+    # compare DNFKLM against Pepin in both dense and sparse modes
     relcount = get_rel_count_DNFKLM(fullfilename, nvars, options.seed, options)
-    relcount2 = get_rel_count_Pepin(fullfilename, options.seed, options)
-    if options.verbose:
-        print("Relcount DNFKLM: ", relcount)
-        print("Relcount Pepin: ", relcount2)
-    print("Diff between the two counters: %s %%" % print_quant_perc(print_decimal(relcount/relcount2)*100))
-    if relcount/relcount2 > 3 or relcount2/relcount > 3:
-        print("!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("Something is WRONG: DNFKLM vs Pepin")
-        print("Diff:", print_decimal(relcount/relcount2))
-        print("DNFKLM count:" , print_decimal(relcount))
-        print("DNF Streaming count:" , print_decimal(relcount2))
-        exit(-1)
+    for sparse_mode in (False, True):
+        relcount2 = get_rel_count_Pepin(fullfilename, options.seed, options, sparse=sparse_mode)
+        mode_label = "sparse" if sparse_mode else "dense"
+        if options.verbose:
+            print("Relcount DNFKLM:           ", relcount)
+            print("Relcount Pepin (%s):  " % mode_label, relcount2)
+        print("Diff DNFKLM vs Pepin(%s):  %s %%"
+              % (mode_label,
+                 print_quant_perc(print_decimal(relcount/relcount2)*100)))
+        if relcount/relcount2 > 3 or relcount2/relcount > 3:
+            print("!!!!!!!!!!!!!!!!!!!!!!!!")
+            print("!!!!!!!!!!!!!!!!!!!!!!!!")
+            print("!!!!!!!!!!!!!!!!!!!!!!!!")
+            print("Something is WRONG: DNFKLM vs Pepin (%s)" % mode_label)
+            print("Diff:", print_decimal(relcount/relcount2))
+            print("DNFKLM count:" , print_decimal(relcount))
+            print("DNF Streaming count (%s):" % mode_label, print_decimal(relcount2))
+            exit(-1)
 
 
 def run_tests():

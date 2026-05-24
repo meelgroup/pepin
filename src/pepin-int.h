@@ -30,14 +30,9 @@
 #include <limits>
 #include <random>
 #include <iostream>
+#include <utility>
 #include <gmpxx.h>
 #include <string.h>
-#ifdef _WIN32
-#include <malloc.h>
-#else
-#include <unistd.h>
-#include <sys/mman.h>
-#endif
 #include "pepin.h"
 
 using std::vector;
@@ -109,82 +104,86 @@ struct Sample {
     }
 };
 
+// Sample-indexed storage. Each "sample" holds nvars logical positions,
+// each in {0, 1, 3=unset}. DenseElems packs all positions as 2-bit cells;
+// SparseElems stores only positions that have been pinned to a concrete value.
 class DenseElems {
 public:
-    ~DenseElems() {
-#ifdef _WIN32
-        _aligned_free(data);
-#else
-        free(data);
-#endif
-    }
     void set_nvars(uint32_t _nvars) { nvars = _nvars; }
-    uint64_t size() const { return num_elems; }
-    value operator[](const uint64_t at) const {
-        uint64_t at_pos = at/4; //4 values per byte
-        uint32_t sub_at = (at % 4)<<1;
+    uint64_t num_samples() const { return n_samples; }
+
+    value get(uint64_t sample_idx, uint32_t var) const {
+        const uint64_t at = sample_idx*(uint64_t)nvars + var;
+        const uint64_t at_pos = at >> 2;
+        const uint32_t sub_at = (at & 3) << 1;
         return (data[at_pos] >> sub_at) & 3;
     }
 
-    void set(uint64_t at, value val) {
+    void set(uint64_t sample_idx, uint32_t var, value val) {
         assert(val < 3);
-        uint64_t at_pos = at/4; //4 values per bit
-        uint32_t sub_at = (at % 4)*2;
-
-        //Clear value
+        const uint64_t at = sample_idx*(uint64_t)nvars + var;
+        const uint64_t at_pos = at >> 2;
+        const uint32_t sub_at = (at & 3) << 1;
         data[at_pos] &= ~((uint8_t)3 << sub_at);
-
-        //Set value
-        val <<= sub_at;
-        data[at_pos] |= val;
+        data[at_pos] |= (uint8_t)(val << sub_at);
     }
 
-    void fill_unset(const uint64_t at) {
+    // Append a new sample (all positions unset). Amortized O(nvars/4)
+    // thanks to vector's exponential growth.
+    uint64_t add_sample() {
         assert(nvars % 4 == 0);
-        assert(at % 4 == 0);
-        uint64_t at_pos = at/4; //4* values per bit
-        memset(data+at_pos, 0xff, nvars/4);
+        const uint64_t old_size = data.size();
+        data.resize(old_size + nvars/4, 0xff);
+        return n_samples++;
     }
 
-    void insert_unset(const uint64_t num) {
-        assert(num % 4 == 0);
-
-        //we align it to pagesize
-#ifdef _WIN32
-        const uint32_t pagesize = 4096;
-#else
-        const auto pagesize = getpagesize();
-#endif
-        uint8_t* data2;
-#ifdef _WIN32
-        data2 = (uint8_t*)_aligned_malloc(curr_size+num/4, pagesize);
-        assert(data2 != nullptr);
-#else
-        auto ret = posix_memalign((void**)&data2, pagesize, curr_size+num/4);
-        assert(ret == 0);
-#endif
-        if (data) memcpy(data2, data, curr_size);
-        memset(data2+curr_size, 0xff, num/4);
-        curr_size+=num/4;
-#ifdef _WIN32
-        _aligned_free(data);
-#else
-        free(data);
-#endif
-        data = data2;
-
-#ifndef _WIN32
-        //and tell the kernel that we'll use it by accessing it randomly
-        madvise(data, curr_size, MADV_RANDOM);
-#endif
-        num_elems += num;
+    // Reset a previously allocated sample slot to all-unset (slot reuse).
+    void reset_sample(uint64_t sample_idx) {
+        assert(nvars % 4 == 0);
+        const uint64_t at_pos = sample_idx*(uint64_t)nvars/4;
+        memset(data.data()+at_pos, 0xff, nvars/4);
     }
 
 private:
-    uint64_t curr_size = 0;
-    uint8_t* data = NULL;
-    uint64_t num_elems = 0;
     uint32_t nvars = 0;
+    uint64_t n_samples = 0;
+    std::vector<uint8_t> data;
+};
+
+// Sparse per-sample storage: each sample is a flat vector of (var, value)
+// pairs. Any var not present reads as 3 (unset). Targets workloads with
+// many variables but short clauses, where each sample only pins a handful
+// of positions.
+class SparseElems {
+public:
+    void set_nvars(uint32_t _nvars) { nvars = _nvars; }
+    uint64_t num_samples() const { return samples.size(); }
+
+    value get(uint64_t sample_idx, uint32_t var) const {
+        const auto& s = samples[sample_idx];
+        for (const auto& p : s) if (p.first == var) return p.second;
+        return 3;
+    }
+
+    void set(uint64_t sample_idx, uint32_t var, value val) {
+        assert(val < 3);
+        auto& s = samples[sample_idx];
+        for (auto& p : s) if (p.first == var) { p.second = (uint8_t)val; return; }
+        s.emplace_back(var, (uint8_t)val);
+    }
+
+    uint64_t add_sample() {
+        samples.emplace_back();
+        return samples.size() - 1;
+    }
+
+    void reset_sample(uint64_t sample_idx) {
+        samples[sample_idx].clear();
+    }
+
+private:
+    uint32_t nvars = 0;
+    std::vector<std::vector<std::pair<uint32_t, uint8_t>>> samples;
 };
 
 class ElemDat {
@@ -207,18 +206,17 @@ public:
         verbosity(_verbosity)
     {}
 
+    // Returns a sample_idx (not a linear position).
     uint64_t add_lazy_common(const uint64_t dnf_cl_num) {
         uint64_t at;
         if (empties.empty()) {
-            elems.insert_unset(nvars);
-            at = elems.size()-nvars;
+            at = elems.add_sample();
             elems_dat.push_back(ElemDat(dnf_cl_num));
         } else {
-            const size_t orig_at = empties.back();
-            at = orig_at*nvars;
+            at = empties.back();
             empties.pop_back();
-            elems.fill_unset(at);
-            elems_dat[orig_at] = ElemDat(dnf_cl_num);
+            elems.reset_sample(at);
+            elems_dat[at] = ElemDat(dnf_cl_num);
         }
         return at;
     }
@@ -233,7 +231,7 @@ public:
 
     void remove(const size_t at) {
         assert(elems_dat[at].empty == false);
-        assert(elems.size()/nvars > at);
+        assert(elems.num_samples() > at);
 
         empties.push_back(at);
         elems_dat[at].empty = true;
