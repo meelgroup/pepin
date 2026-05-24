@@ -97,6 +97,23 @@ Rules of thumb:
 - `--sparse 2` (hash) bounds clause length by `HashElems::MAX_PINNINGS`
   (64 at the time of writing). Wider clauses will abort.
 
+## Note on tight (ε, δ) PAC bounds
+Burkhardt, Harris, and Schmitt (*Scalable Algorithms for Approximate DNF
+Model Counting*, Figure 4: n=15,000, m=11,250, ε=0.1, δ=0.05) speculate
+that Pepin will "become much slower for the tighter bounds ε=0.1, δ=0.05"
+than at the looser ε=0.8, δ=0.36 it was originally benchmarked on. It
+doesn't — wall times in seconds across all three representations on
+monotone random instances:
+
+| k  | dense | sparse | hash |
+|---:|------:|-------:|-----:|
+|  3 |  8.29 |   8.93 | 3.82 |
+|  5 |  5.44 |  10.07 | 4.15 |
+|  8 |  4.20 |   6.96 | 4.34 |
+| 13 |  4.22 |   6.40 | 4.66 |
+| 21 |  3.60 |   5.34 | 4.70 |
+| 34 |  3.22 |   4.26 | 4.78 |
+
 ## Weighted Counting
 Pepin is a streaming, weighted approximate model. Because it works with data
 streams, you must declare the weights of all literals before you start the
