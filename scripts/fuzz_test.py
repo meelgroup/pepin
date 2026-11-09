@@ -88,7 +88,7 @@ def get_rel_count_Pepin(fullfilename, seed_here, options, sparse=None):
     run_command = ["./pepin",
                    "--epsilon", options.epsilon, "--delta", options.delta,
                    "--seed", "%s" % seed_here,
-                   "--sparse", "1" if sparse else "0",
+                   "--sparse", str(int(sparse)),
                    fullfilename]
     if options.verbose:
         print("Running Pepin (sparse=%s) on file %s" % (sparse, fullfilename))
@@ -173,11 +173,9 @@ def test(fname, num_tested, options):
             print("WARNING: too large difference by the same counter, Pepin!!")
             #exit(-1)
 
-    # compare DNFKLM against Pepin in both dense and sparse modes
     relcount = get_rel_count_DNFKLM(fullfilename, nvars, options.seed, options)
-    for sparse_mode in (False, True):
+    for sparse_mode, mode_label in ((0, "dense"), (1, "hash")):
         relcount2 = get_rel_count_Pepin(fullfilename, options.seed, options, sparse=sparse_mode)
-        mode_label = "sparse" if sparse_mode else "dense"
         if options.verbose:
             print("Relcount DNFKLM:           ", relcount)
             print("Relcount Pepin (%s):  " % mode_label, relcount2)
@@ -238,8 +236,8 @@ def set_up_parser():
                       type=str, help="Epsilon to use")
     parser.add_option("--delta", dest="delta", default="0.35",
                       type=str, help="Delta to use")
-    parser.add_option("--sparse", dest="sparse", default=False,
-                      action="store_true", help="Use sparse representation (default: dense)")
+    parser.add_option("--sparse", dest="sparse", default=0,
+                      type=int, help="Representation: 0=dense, 1=hash")
     return parser
 
 
@@ -285,15 +283,15 @@ if __name__ == "__main__":
     print("Done, T: ", time.time()-t)
     run_tests()
 
-    # Many-clauses regime — the sparse target. The scaffolded generator
+    # Many-clauses regime — the hash target. The scaffolded generator
     # is O(N^2) on this shape, so use fast_gen.py instead.
-    print("Generating MANY-clauses instances (sparse target)...")
+    print("Generating MANY-clauses instances (hash target)...")
     os.system("rm -f %s/rand*.dnf %s/big_*.dnf" % (options.dir, options.dir))
     t = time.time()
     instances = int(options.instances)
     for idx in range(instances):
         # Each instance: 10k vars x 50k clauses x 3-lit. Big enough to
-        # expose dense vs sparse perf gap, small enough for DNFKLM.
+        # expose dense vs hash perf gap, small enough for DNFKLM.
         out = "%s/big_%d.dnf" % (options.dir, idx)
         ret = os.system("./fast_gen.py 10000 50000 3 %s %d" % (out, idx + 1))
         assert ret == 0, "fast_gen.py failed"

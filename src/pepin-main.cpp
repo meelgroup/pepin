@@ -85,7 +85,7 @@ void add_dnfs_options() {
     myopt2("--seed","-s", seed, atoi, "Seed");
     myopt("--eager", force_eager, atoi, "Force eager");
     myopt("--fastcenter", fast_center_calc, atoi, "fast center calculation");
-    myopt("--sparse", use_sparse, atoi, "Sample representation: 0=dense (default), 1=sparse, 2=hash");
+    myopt("--sparse", use_sparse, atoi, "Sample representation: 0=dense (default), 1=hash (2 is an alias)");
 
     program.add_argument("files").remaining().help("input file and output file");
 }
@@ -153,11 +153,11 @@ int main(int argc, char** argv)
     }
     PepinNS::RepresentationType repr;
     const char* repr_name = "DENSE";
-    if (use_sparse == 1) { repr = PepinNS::RepresentationType::SPARSE; repr_name = "SPARSE"; }
-    else if (use_sparse == 2) { repr = PepinNS::RepresentationType::HASH; repr_name = "HASH"; }
+    // 1 used to be a separate "sparse" mode, superseded by hash
+    if (use_sparse == 1 || use_sparse == 2) { repr = PepinNS::RepresentationType::HASH; repr_name = "HASH"; }
     else if (use_sparse == 0) { repr = PepinNS::RepresentationType::DENSE; }
     else {
-        cout << "ERROR: --sparse must be 0 (dense), 1 (sparse), or 2 (hash)" << endl;
+        cout << "ERROR: --sparse must be 0 (dense) or 1 (hash)" << endl;
         exit(-1);
     }
     dnfs = new PepinNS::Pepin(epsilon, delta, seed, verb, repr);

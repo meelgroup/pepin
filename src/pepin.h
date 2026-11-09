@@ -34,7 +34,6 @@ namespace PepinNS {
 
 enum class RepresentationType {
     DENSE = 0,
-    SPARSE = 1,
     HASH = 2
 };
 

@@ -31,6 +31,7 @@
 #include <random>
 #include <iostream>
 #include <utility>
+#include <type_traits>
 #include <algorithm>
 #include <gmpxx.h>
 #include <string.h>
@@ -107,7 +108,7 @@ struct Sample {
 
 // Sample-indexed storage. Each "sample" holds nvars logical positions,
 // each in {0, 1, 3=unset}. DenseElems packs all positions as 2-bit cells;
-// SparseElems stores only positions that have been pinned to a concrete value.
+// HashElems stores only pinned positions and derives the rest from a seed.
 //
 // Hot path uses the *_ref accessors with a precomputed handle to skip the
 // per-call (sample_idx * nvars / 4) multiplication on every get/set, and
@@ -169,120 +170,10 @@ private:
     std::vector<uint8_t> data;
 };
 
-// Hybrid per-sample storage. Each sample starts in sparse mode (sorted
-// vector of (var, value) pairs, binary-searched). Once its concrete-entry
-// count crosses nvars / DENSE_SWITCH_RATIO, it auto-promotes to a packed
-// 2-bit-per-var dense bitset, at which point get/set become O(1).
-//
-// Short-lived samples (killed quickly by remove_sol) never promote and
-// stay cheap. Long-lived samples that would otherwise accumulate O(N^2)
-// insert cost in a sorted vector pay a one-shot promotion and then run
-// at dense speed.
-class SparseElems {
-    static bool cmp_var(const std::pair<uint32_t, uint8_t>& p, uint32_t v) {
-        return p.first < v;
-    }
-
-    struct Sample {
-        std::vector<std::pair<uint32_t, uint8_t>> sparse;
-        std::vector<uint8_t> dense; // empty until promoted; size nvars/4
-        bool is_dense = false;
-    };
-
-    // Promote when sparse entries exceed this. Tuned for runtime, not
-    // memory: sparse insert is O(N) per shift, so total per-sample insert
-    // cost is O(N^2); dense set is O(1). Crossover where per-insert cost
-    // of sparse exceeds dense is roughly N>=8, so we cap N around there.
-    // For very long-lived samples this means we briefly stay sparse, then
-    // run at dense speed for the bulk of remove_sol passes. Short-lived
-    // samples (high k -> low survival, or k=3 with rapid kills) never
-    // promote and keep the sparse-side wins of cheap add/reset.
-    static constexpr uint32_t DENSE_SWITCH_THRESH = 32;
-
-    void promote(Sample& s) const {
-        s.dense.assign(nvars/4, 0xff);
-        for (const auto& p : s.sparse) {
-            const uint64_t at_pos = p.first >> 2;
-            const uint32_t sub_at = (p.first & 3) << 1;
-            s.dense[at_pos] &= ~((uint8_t)3 << sub_at);
-            s.dense[at_pos] |= (uint8_t)(p.second << sub_at);
-        }
-        std::vector<std::pair<uint32_t, uint8_t>>().swap(s.sparse);
-        s.is_dense = true;
-    }
-
-public:
-    using SampleRef = Sample*;
-    using ConstSampleRef = const Sample*;
-
-    void set_nvars(uint32_t _nvars) {
-        assert(_nvars % 4 == 0);
-        nvars = _nvars;
-    }
-    void set_seed(uint64_t /*s*/) {} // no-op: sparse doesn't use seeds
-    uint64_t num_samples() const { return samples.size(); }
-
-    SampleRef sample_ref(uint64_t sample_idx) { return &samples[sample_idx]; }
-    ConstSampleRef sample_ref(uint64_t sample_idx) const { return &samples[sample_idx]; }
-
-    static value get_ref(ConstSampleRef s, uint32_t var) {
-        if (s->is_dense) {
-            return (s->dense[var >> 2] >> ((var & 3) << 1)) & 3;
-        }
-        auto it = std::lower_bound(s->sparse.begin(), s->sparse.end(), var, cmp_var);
-        if (it != s->sparse.end() && it->first == var) return it->second;
-        return 3;
-    }
-
-    void set_ref(SampleRef s, uint32_t var, value val) {
-        assert(val < 3);
-        if (s->is_dense) {
-            const uint32_t sub = (var & 3) << 1;
-            uint8_t* b = &s->dense[var >> 2];
-            *b = (*b & ~((uint8_t)3 << sub)) | (uint8_t)(val << sub);
-            return;
-        }
-        auto it = std::lower_bound(s->sparse.begin(), s->sparse.end(), var, cmp_var);
-        if (it != s->sparse.end() && it->first == var) {
-            it->second = (uint8_t)val;
-            return;
-        }
-        s->sparse.emplace(it, var, (uint8_t)val);
-        if (s->sparse.size() > DENSE_SWITCH_THRESH) promote(*s);
-    }
-
-    value get(uint64_t sample_idx, uint32_t var) const {
-        return get_ref(sample_ref(sample_idx), var);
-    }
-    void set(uint64_t sample_idx, uint32_t var, value val) {
-        set_ref(sample_ref(sample_idx), var, val);
-    }
-
-    uint64_t add_sample() {
-        samples.emplace_back();
-        return samples.size() - 1;
-    }
-
-    void reset_sample(uint64_t sample_idx) {
-        Sample& s = samples[sample_idx];
-        // Reset to sparse mode; release the dense buffer if any so the
-        // freed slot doesn't carry stale promotion state into reuse.
-        s.sparse.clear();
-        std::vector<uint8_t>().swap(s.dense);
-        s.is_dense = false;
-    }
-
-private:
-    uint32_t nvars = 0;
-    std::vector<Sample> samples;
-};
-
 // Hash-based per-sample storage. Each sample is just a uint64_t seed plus
 // the small sorted list of (var, value) pairs pinned by add_lazy. Unpinned
-// vars are derived on demand via hash(seed, var) & 1. Samples are immutable
-// after add_lazy -- remove_sol never writes, so the bucket is read-only
-// during scans. Tradeoff: only supports default 1/2 weights (sampling
-// distribution); for weighted vars use Dense or Sparse.
+// vars are derived on demand from hash(seed, var) according to the var's
+// weight, so the bucket is read-only during remove_sol scans.
 class HashElems {
     struct Sample {
         uint64_t seed = 0;
@@ -308,16 +199,24 @@ public:
 
     void set_nvars(uint32_t _nvars) { nvars = _nvars; }
     void set_seed(uint64_t s) { seed_gen.seed(s); }
+    void set_weights(const vector<Weight>* w, bool all_default) {
+        weights = w;
+        all_default_weights = all_default;
+    }
     uint64_t num_samples() const { return samples.size(); }
 
     SampleRef sample_ref(uint64_t sample_idx) { return &samples[sample_idx]; }
     ConstSampleRef sample_ref(uint64_t sample_idx) const { return &samples[sample_idx]; }
 
-    static value get_ref(ConstSampleRef s, uint32_t var) {
+    value get_ref(ConstSampleRef s, uint32_t var) const {
         const auto& p = s->pinnings;
         auto it = std::lower_bound(p.begin(), p.end(), var, cmp_var);
         if (it != p.end() && it->first == var) return it->second;
-        return (value)(mix(s->seed, var) & 1);
+        const uint64_t h = mix(s->seed, var);
+        if (all_default_weights) return (value)(h & 1);
+        const Weight& w = (*weights)[var];
+        // Lemire multiply-shift: uniform in [0, divisor) without a division
+        return (value)((((h >> 32) * w.divisor) >> 32) < w.dividend);
     }
 
     static void set_ref(SampleRef s, uint32_t var, value val) {
@@ -352,6 +251,8 @@ public:
 
 private:
     uint32_t nvars = 0;
+    const vector<Weight>* weights = nullptr;
+    bool all_default_weights = true;
     std::mt19937_64 seed_gen;
     std::vector<Sample> samples;
 };
@@ -417,6 +318,9 @@ public:
         elems.set_nvars(_nvars);
     }
     void set_seed(uint64_t s) { elems.set_seed(s); }
+    void set_weights(const vector<Weight>* w) {
+        if constexpr (std::is_same_v<T, HashElems>) elems.set_weights(w, all_default_weights);
+    }
 
     void print_elems_stats(const uint64_t tot_num_dnf_cls) const;
 

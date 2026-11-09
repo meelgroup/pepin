@@ -54,65 +54,45 @@ advertised 15% error allowed (i.e. epsilon 0.15).
 
 ## Sample Representation Modes
 Pepin keeps a bucket of in-progress samples in memory while it streams the
-input. Three internal representations are available via `--sparse N`; they
-all return the same approximate count (within the ε / δ envelope), they
-differ only in time and memory:
+input. Two internal representations are available via `--sparse N`; both
+return the same approximate count (within the ε / δ envelope) and support
+weights, they differ only in time and memory:
 
 - `--sparse 0` — **dense** (default). Each sample is `nvars`-wide, packed at
-  2 bits per variable. Fastest per-sample access; per-sample memory grows
-  linearly in `nvars`.
-- `--sparse 1` — **sparse**. Each sample starts as a sorted vector of only
-  the variables that have been pinned to a concrete value, and auto-promotes
-  to a packed dense bitset once it accumulates enough concretes. Cheaper
-  per-sample memory when most variables stay unset; pays a binary-search
-  cost on lookups while in sparse form.
-- `--sparse 2` — **hash**. Each sample stores a 64-bit seed plus the small
-  sorted list of variables pinned by `add_lazy`. Unpinned variables are
-  derived on demand via `hash(seed, var) & 1`, so samples are read-only
-  during the bucket scan. Per-sample memory does not depend on `nvars`.
+  2 bits per variable. Per-sample memory grows linearly in `nvars`.
+- `--sparse 1` — **hash**. Each sample stores a 64-bit seed plus the sorted
+  list of variables pinned by its clause. Unpinned variables are derived on
+  demand from `hash(seed, var)` and the variable's weight, so samples are
+  read-only during the bucket scan. Per-sample memory does not depend on
+  `nvars`. (`--sparse 2` is accepted as an alias.)
 
-### When to pick which
+Use hash when `nvars` is large or clauses are short. Random monotone
+instances, 50k clauses, ε=0.1, δ=0.05, CPU seconds:
 
-| Workload                                                  | Best mode |
-|-----------------------------------------------------------|-----------|
-| Default / unsure                                          | `0` dense |
-| Small `nvars` (≤ ~10k) with wide clauses                  | `0` dense |
-| Many variables, short clauses (k ≤ ~5)                    | `1` sparse |
-| Very large `nvars` (≥ ~50k), any clause width             | `2` hash  |
-| Weighted counting (non-1/2 weights on any variable)       | `0` or `1` |
+| nvars | k=2   | k=3   | k=5   | k=8   |
+|------:|------:|------:|------:|------:|
+| 10k   | 160 / 22  | 131 / 26  | 104 / 35  | 88 / 27   |
+| 100k  | >600 / 27 | >600 / 32 | 352 / 39  | 173 / 51  |
+| 1M    | OOM / 42  | OOM / 40  | OOM / 43  | OOM / 45  |
 
-Rules of thumb:
-- For small / moderate `nvars` (≤ ~15k), dense usually wins on raw
-  throughput — its per-sample byte access is a single load.
-- Sparse stops being competitive once samples accumulate roughly `nvars/16`
-  concrete entries; for short clauses with rapid early-break that rarely
-  happens, so it wins.
-- Hash shines when `nvars` is large enough that dense's per-sample footprint
-  blows up the bucket past cache size — its per-sample storage is bounded
-  by the clause length, not `nvars`.
-
-### Limitations
-- `--sparse 2` (hash) assumes default 1/2 weights for unpinned variables.
-  For weighted counting use `--sparse 0` or `--sparse 1`.
-- `--sparse 2` (hash) bounds clause length by `HashElems::MAX_PINNINGS`
-  (64 at the time of writing). Wider clauses will abort.
+(dense / hash; OOM = over 3.5 GB, hash used ≤ 27 MB). Dense can still be
+slightly faster on small `nvars` with wide clauses, see below.
 
 ## Note on tight (ε, δ) PAC bounds
 Burkhardt, Harris, and Schmitt (*Scalable Algorithms for Approximate DNF
 Model Counting*, Figure 4: n=15,000, m=11,250, ε=0.1, δ=0.05) speculate
 that Pepin will "become much slower for the tighter bounds ε=0.1, δ=0.05"
 than at the looser ε=0.8, δ=0.36 it was originally benchmarked on. It
-doesn't — wall times in seconds across all three representations on
-monotone random instances:
+doesn't — wall times in seconds on monotone random instances:
 
-| k  | dense | sparse | hash |
-|---:|------:|-------:|-----:|
-|  3 |  8.29 |   8.93 | 3.82 |
-|  5 |  5.44 |  10.07 | 4.15 |
-|  8 |  4.20 |   6.96 | 4.34 |
-| 13 |  4.22 |   6.40 | 4.66 |
-| 21 |  3.60 |   5.34 | 4.70 |
-| 34 |  3.22 |   4.26 | 4.78 |
+| k  | dense | hash |
+|---:|------:|-----:|
+|  3 |  8.29 | 3.82 |
+|  5 |  5.44 | 4.15 |
+|  8 |  4.20 | 4.34 |
+| 13 |  4.22 | 4.66 |
+| 21 |  3.60 | 4.70 |
+| 34 |  3.22 | 4.78 |
 
 ## Weighted Counting
 Pepin is a streaming, weighted approximate model. Because it works with data

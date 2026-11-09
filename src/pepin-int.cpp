@@ -237,7 +237,8 @@ void PepinInt<StorageType>::get_cl_precision(const vector<Lit>& cl, mpz_t cl_pre
         }
     }
     if (fast_ok) {
-        mpz_mul_2exp(cl_prec_out, constant_one_z, nvars-cl.size());
+        // Not 2^(nvars-|cl|): other vars may have non-1/2 weights
+        mpz_tdiv_q_2exp(cl_prec_out, prod_precision, cl.size());
     } else {
         assert(cl.size() > 0);
         mpz_set(cl_prec_out, prod_precision);
@@ -469,6 +470,8 @@ bool PepinInt<StorageType>::add_clause(const vector<Lit>& cl) {
         for(const auto w: weights) {
             mpz_mul_ui(prod_precision, prod_precision, w.divisor);
         }
+        // weights are final once clauses start streaming
+        bucket.set_weights(&weights);
         last_10k_time = cpuTime();
     }
     if (num_cl_added >= n_cls_declared) {
@@ -599,6 +602,5 @@ const mpq_t* PepinInt<StorageType>::get_appx_weighted_sol() const {
 // Explicit template instantiations
 namespace PepinIntNS {
     template class PepinInt<DenseElems>;
-    template class PepinInt<SparseElems>;
     template class PepinInt<HashElems>;
 }
